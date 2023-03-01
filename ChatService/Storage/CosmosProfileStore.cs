@@ -20,9 +20,9 @@ public class CosmosProfileStore : IProfileInterface
     public async Task UpsertProfile(Profile profile)
     {
         if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.userName) ||
-            string.IsNullOrWhiteSpace(profile.firstName) ||
-            string.IsNullOrWhiteSpace(profile.lastName)
+            string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.FirstName) ||
+            string.IsNullOrWhiteSpace(profile.LastName)
            )
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
@@ -77,18 +77,18 @@ public class CosmosProfileStore : IProfileInterface
     private static ProfileEntity ToEntity(Profile profile)
     {
         return new ProfileEntity(
-            partitionKey: profile.userName,
-            id: profile.userName,
-            profile.firstName,
-            profile.lastName,
-            profile.ProfilePictureID
+            partitionKey: profile.Username,
+            id: profile.Username,
+            profile.FirstName,
+            profile.LastName,
+            profile.ProfilePictureId
         ); ;
     }
 
     private static Profile ToProfile(ProfileEntity entity)
     {
-        Profile toReturn = new(entity.id, entity.firstName, entity.lastName);
-        toReturn.ProfilePictureID = entity.profilePictureID;
+        Profile toReturn = new(entity.id, entity.firstName, entity.lastName, entity.profilePictureID);
+        toReturn.ProfilePictureId = entity.profilePictureID;
         return toReturn;
     }
 }

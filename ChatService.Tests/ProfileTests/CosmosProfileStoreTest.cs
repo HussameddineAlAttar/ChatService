@@ -16,11 +16,12 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     private readonly IProfileInterface profileStore;
 
     private readonly Profile testProfile;
+    private readonly string pictureID = Guid.NewGuid().ToString();
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
         profileStore = factory.Services.GetRequiredService<IProfileInterface>();
-        testProfile = new Profile("randomUsernameForTest", "FooTest", "BarTest");
+        testProfile = new Profile("randomUsernameForTest", "FooTest", "BarTest", pictureID);
     }
 
     public Task InitializeAsync()
@@ -30,7 +31,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 
     public async Task DisposeAsync()
     {
-        await profileStore.DeleteProfile(testProfile.userName);
+        await profileStore.DeleteProfile(testProfile.Username);
     }
 
     [Fact]
@@ -55,7 +56,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     public async Task AddProfile()
     {
         await profileStore.UpsertProfile(testProfile);
-        Assert.Equal(testProfile, await profileStore.GetProfile(testProfile.userName));
+        Assert.Equal(testProfile, await profileStore.GetProfile(testProfile.Username));
     }
 
     [Theory]
@@ -72,7 +73,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await profileStore.UpsertProfile(new Profile(username, firstname, lastname));
+            await profileStore.UpsertProfile(new Profile(username, firstname, lastname, pictureID));
         });
     }
 
@@ -81,12 +82,12 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     public async Task DeleteProfile()
     {
         string random = Guid.NewGuid().ToString();
-        Profile toDeleteProfile = new(random, random, random);
+        Profile toDeleteProfile = new(random, random, random, random);
         await profileStore.UpsertProfile(toDeleteProfile);
-        Assert.Equal(toDeleteProfile, await profileStore.GetProfile(toDeleteProfile.userName));
+        Assert.Equal(toDeleteProfile, await profileStore.GetProfile(toDeleteProfile.Username));
 
-        await profileStore.DeleteProfile(toDeleteProfile.userName);
-        Assert.Null(await profileStore.GetProfile(toDeleteProfile.userName));
+        await profileStore.DeleteProfile(toDeleteProfile.Username);
+        Assert.Null(await profileStore.GetProfile(toDeleteProfile.Username));
     }
 
     [Fact]

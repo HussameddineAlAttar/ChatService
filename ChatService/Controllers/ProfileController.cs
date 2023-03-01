@@ -24,34 +24,37 @@ public class ProfileController : ControllerBase
         var profile = await profileInterface.GetProfile(username);
         if(profile == null)
         {
-            return NotFound($"User with username {username} was not found.");
+            return NotFound($"Profile of username {username} was not found.");
         }
         return Ok(profile);
     }
 
     [HttpPost]
-    public async Task<ActionResult<Profile>> AddProfile(IncompleteProfile inProfile)
+    public async Task<ActionResult<Profile>> AddProfile(Profile profile)
     {
-        var existing = await profileInterface.GetProfile(inProfile.userName);
-        if(existing != null) {
-            return Conflict($"Cannot create profile. Username {inProfile.userName} is taken.");
+        var existingProfile = await profileInterface.GetProfile(profile.Username);
+        if(existingProfile != null) {
+            return Conflict($"Cannot create profile. Username {profile.Username} is taken.");
         }
-        Profile fullProfile = new Profile(inProfile.userName, inProfile.firstName, inProfile.lastName);
-        await profileInterface.UpsertProfile(fullProfile);
-        return CreatedAtAction(nameof(GetProfile), new { username = fullProfile.userName },fullProfile);
-
-    }
-
-    [HttpDelete("{username}")]
-    public async Task<ActionResult<Profile>> DeleteProfile(string username)
-    {
-        var profile = await profileInterface.GetProfile(username);
-        if (profile == null)
+        var existingImage = await blobStorage.DownloadImage(profile.ProfilePictureId);
+        if(existingImage == null)
         {
-            return NotFound($"A User with username {username} was not found");
+            return BadRequest($"Image with id {profile.ProfilePictureId} does not exist.");
         }
-        await profileInterface.DeleteProfile(username);
-        await blobStorage.DeleteImage(profile.ProfilePictureID);
-        return Ok($"Profile of username {username} successfully deleted");
+        await profileInterface.UpsertProfile(profile);
+        return CreatedAtAction(nameof(GetProfile), new { username = profile.Username },profile);
+
     }
+
+    //[HttpDelete("{username}")]
+    //public async Task<ActionResult<Profile>> DeleteProfile(string username)
+    //{
+    //    var profile = await profileInterface.GetProfile(username);
+    //    if (profile == null)
+    //    {
+    //        return NotFound($"Profile of username {username} was not found");
+    //    }
+    //    await profileInterface.DeleteProfile(username);
+    //    return Ok($"Profile of username {username} successfully deleted");
+    //}
 }

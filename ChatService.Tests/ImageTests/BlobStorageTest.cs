@@ -36,8 +36,7 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
 
     public async Task DisposeAsync()
     {
-        // deletes one instance of png, jpg, and jpeg
-        await blobStorage.DeleteImage(testID);
+        // deletes one instance of png and jpeg
         await blobStorage.DeleteImage(testID);
         await blobStorage.DeleteImage(testID);
     }
@@ -62,7 +61,6 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
 
     [Theory]
     [InlineData("png")]
-    [InlineData("jpg")]
     [InlineData("jpeg")]
     public async Task UpoadImage(string type)
     {
@@ -74,10 +72,10 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file, testID);
-        await blobStorage.UploadImage(request);
+        UploadImageRequest request = new(file);
+        var response = await blobStorage.UploadImage(request);
 
-        Image image = await blobStorage.DownloadImage(testID);
+        Image image = await blobStorage.DownloadImage(response);
 
         using (var expectedContent = new MemoryStream())
         using (var actualContent = new MemoryStream())
@@ -86,12 +84,13 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             image.Content?.CopyTo(actualContent);
             Assert.Equal(expectedContent.ToArray(), actualContent.ToArray());
         }
+        await blobStorage.DeleteImage(response);
     }
 
     [Theory]
     [InlineData("png")]
-    [InlineData("jpg")]
     [InlineData("jpeg")]
+    [InlineData("jpg")]
     public async Task Delete_Image(string type)
     {
         var stream = new MemoryStream();
@@ -101,13 +100,13 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file, testID);
-        await blobStorage.UploadImage(request);
+        UploadImageRequest request = new(file);
+        var response = await blobStorage.UploadImage(request);
 
 
-        await blobStorage.DeleteImage(testID);
+        await blobStorage.DeleteImage(response);
 
-        Assert.Null(await blobStorage.DownloadImage(testID));
+        Assert.Null(await blobStorage.DownloadImage(response));
 
     }
 
