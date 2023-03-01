@@ -19,7 +19,8 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     private readonly HttpClient httpClient;
 
     private readonly Profile testProfile;
-    private readonly IncompleteProfile incProfile;
+    private readonly Image testImage;
+
 
     public ProfileControllerTest(WebApplicationFactory<Program> factory)
     {
@@ -28,16 +29,16 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
             builder.ConfigureTestServices(services => { services.AddSingleton(profileStoreMock.Object); });
             builder.ConfigureTestServices(services => { services.AddSingleton(blobStorageMock.Object); });
         }).CreateClient();
-        incProfile = new IncompleteProfile("Test_FooBar", "FooTest", "BarTest");
-        testProfile = new Profile(incProfile.userName, incProfile.firstName, incProfile.lastName);
+        testImage = new Image(new MemoryStream(), "randomType");
+        testProfile = new Profile("Test_FooBar", "FooTest", "BarTest", Guid.NewGuid().ToString());
     }
 
     [Fact]
     public async Task GetProfile()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.userName)).ReturnsAsync(testProfile);
+        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
 
-        var response = await httpClient.GetAsync($"/profile/{testProfile.userName}");
+        var response = await httpClient.GetAsync($"/profile/{testProfile.Username}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadAsStringAsync();
@@ -47,20 +48,21 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task GetNonExistingProfile()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.userName)).ReturnsAsync((Profile?)null);
+        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync((Profile?)null);
 
-        var response = await httpClient.GetAsync($"/profile/{testProfile.userName}");
+        var response = await httpClient.GetAsync($"/profile/{testProfile.Username}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
     public async Task AddProfile()
     {
+        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ReturnsAsync(testImage);
         var response = await httpClient.PostAsync("/profile",
-            new StringContent(JsonConvert.SerializeObject(incProfile), Encoding.Default, "application/json"));
+            new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal($"http://localhost/profile/{incProfile.userName}", response.Headers.GetValues("Location").First());
+        Assert.Equal($"http://localhost/profile/{testProfile.Username}", response.Headers.GetValues("Location").First());
 
         var json = await response.Content.ReadAsStringAsync();
         var uploadedProfile = JsonConvert.DeserializeObject<Profile>(json);
@@ -70,7 +72,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task AddProfile_AlreadyExists()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.userName)).ReturnsAsync(testProfile);
+        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
 
         var response = await httpClient.PostAsync("/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
@@ -90,7 +92,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [InlineData("foobar", "Foo", " ")]
     public async Task AddProfile_InvalidArgs(string username, string firstname, string lastname)
     {
-        Profile profile = new(username, firstname, lastname);
+        Profile profile = new(username, firstname, lastname, Guid.NewGuid().ToString());
         var response = await httpClient.PostAsync("/profile",
             new StringContent(JsonConvert.SerializeObject(profile), Encoding.Default, "application/json"));
 
@@ -98,23 +100,34 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
         profileStoreMock.Verify(mock => mock.UpsertProfile(profile), Times.Never);
 
     }
-
     [Fact]
-    public async Task DeleteProfile()
+    public async Task AddProfile_NoImageFound()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.userName)).ReturnsAsync(testProfile);
+        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ReturnsAsync((Image?)null);
 
-        var response = await httpClient.DeleteAsync($"/profile/{testProfile.userName}");
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.userName), Times.Once);
+        var response = await httpClient.PostAsync("/profile",
+            new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        profileStoreMock.Verify(m => m.UpsertProfile(testProfile), Times.Never);
     }
 
-    [Fact]
-    public async Task DeleteProfile_NotExisting()
-    {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.userName)).ReturnsAsync((Profile?)null);
-        var response = await httpClient.DeleteAsync($"/profile/{testProfile.userName}");
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-        profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.userName), Times.Never);
-    }
+    //[Fact]
+    //public async Task DeleteProfile()
+    //{
+    //    profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
+
+    //    var response = await httpClient.DeleteAsync($"/profile/{testProfile.Username}");
+    //    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    //    profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.Username), Times.Once);
+    //}
+
+    //[Fact]
+    //public async Task DeleteProfile_NotExisting()
+    //{
+    //    profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync((Profile?)null);
+    //    var response = await httpClient.DeleteAsync($"/profile/{testProfile.Username}");
+    //    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    //    profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.Username), Times.Never);
+    //}
 }

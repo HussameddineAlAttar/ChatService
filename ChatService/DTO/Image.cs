@@ -8,6 +8,10 @@ public record Image
     public Image(Stream? content, string? contentType)
     {
         Content = content;
+        if(contentType == "image/jpg")
+        {
+            contentType = "image/jpeg";
+        }
         ContentType = contentType;
     }
 }

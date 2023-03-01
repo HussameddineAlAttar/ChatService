@@ -34,17 +34,13 @@ public class BlobPictureStore : IImageInterface
             type = "png";
             if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
             {
-                blobClient = Container.GetBlobClient(id + ".jpg");
-                type = "jpg";
-                if (!await blobClient.ExistsAsync()) // if {id}.jpg doesn't exist
+                blobClient = Container.GetBlobClient(id + ".jpeg");
+                type = "jpeg";
+                if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    blobClient = Container.GetBlobClient(id + ".jpeg");
-                    type = "jpeg";
-                    if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
-                    {
-                        return null;
-                    }
+                    return null;
                 }
+            
             }
 
             BlobDownloadResult content = await blobClient.DownloadContentAsync();
@@ -59,12 +55,19 @@ public class BlobPictureStore : IImageInterface
     }
 
 
-    public async Task UploadImage(UploadImageRequest request)
+    public async Task<string> UploadImage(UploadImageRequest request)
     {
+        string pictureID = Guid.NewGuid().ToString();
         var file = request.File;
-        var blobName = $"{request.id}{Path.GetExtension(file.FileName)}";
+        string type = Path.GetExtension(file.FileName);
+        if(type == ".jpg")
+        {
+            type = ".jpeg";
+        }
+        var blobName = $"{pictureID}{type}"; //file type to include in Image during download
         var blobClient = Container.GetBlobClient(blobName);
         await blobClient.UploadAsync(file.OpenReadStream(), true);
+        return pictureID;
         
     }
 
@@ -82,17 +85,13 @@ public class BlobPictureStore : IImageInterface
             type = "png";
             if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
             {
-                blobClient = Container.GetBlobClient(id + ".jpg");
-                type = "jpg";
-                if (!await blobClient.ExistsAsync()) // if {id}.jpg doesn't exist
+                blobClient = Container.GetBlobClient(id + ".jpeg");
+                type = "jpeg";
+                if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    blobClient = Container.GetBlobClient(id + ".jpeg");
-                    type = "jpeg";
-                    if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
-                    {
-                        return;
-                    }
+                    return;
                 }
+            
             }
             await blobClient.DeleteAsync();
             return;

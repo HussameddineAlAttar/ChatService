@@ -5,7 +5,7 @@ namespace ChatService.Storage;
 
 public interface IImageInterface
 {
-    Task UploadImage([FromForm] UploadImageRequest request);
+    Task<string> UploadImage([FromForm] UploadImageRequest request);
     Task<Image?> DownloadImage(string id);
     Task DeleteImage(string id);
 }

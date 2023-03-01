@@ -3,16 +3,16 @@ namespace ChatService.DTO;
 
 public record Profile
 {
-    public string userName { get; init; }
-    public string firstName { get; init; }
-    public string lastName { get; init; }
-    public string ProfilePictureID { get; set; }
+    public string Username { get; init; }
+    public string FirstName { get; init; }
+    public string LastName { get; init; }
+    public string ProfilePictureId { get; set; }
 
-    public Profile(string userName, string firstName, string lastName)
+    public Profile(string Username, string FirstName, string LastName, string ProfilePictureId)
     {
-        this.userName = userName;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        ProfilePictureID = Guid.NewGuid().ToString();
+        this.Username = Username;
+        this.FirstName = FirstName;
+        this.LastName = LastName;
+        this.ProfilePictureId = ProfilePictureId;
     }
 }

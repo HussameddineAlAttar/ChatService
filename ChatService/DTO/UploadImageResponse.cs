@@ -1,11 +1,11 @@
 ﻿namespace ChatService.DTO;
 
-public class UploadImageResponse
+public record UploadImageResponse
 {
-    public string Id { get; set; }
+    public string imageId { get; set; }
 
     public UploadImageResponse(string id)
     {
-        Id = id;
+        imageId = id;
     }
 }
