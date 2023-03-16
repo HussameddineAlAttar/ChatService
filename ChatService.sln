@@ -5,7 +5,7 @@ VisualStudioVersion = 17.4.33213.308
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatService", "ChatService\ChatService.csproj", "{3393A7E0-AC27-43BF-A192-CF3C9FC34034}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatService.Tests", "ChatService.Tests\ChatService.Tests.csproj", "{702DCB45-A9D9-4CF7-A5D9-782F0867E3ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatService.Tests", "ChatService.Tests\ChatService.Tests.csproj", "{702DCB45-A9D9-4CF7-A5D9-782F0867E3ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
