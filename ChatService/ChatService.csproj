@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.32.0" />
     <PackageReference Include="Microsoft.Azure.DocumentDB.Core" Version="2.18.0" />
     <PackageReference Include="Microsoft.Azure.Storage.Blob" Version="11.2.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.AzureAppConfiguration" Version="5.2.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
