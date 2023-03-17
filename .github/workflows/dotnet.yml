@@ -26,3 +26,6 @@ jobs:
       run: dotnet build --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
+      env:
+        Cosmos:ConnectionString: ${{ secrets.COSMOS_CONNECTION_STRING }}
+        AzureBlobStorage:ConnectionString: ${{ secrets.BLOB_STORAGE_CONNECTION_STRING }}
