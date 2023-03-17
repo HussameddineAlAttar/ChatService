@@ -16,7 +16,7 @@ builder.Services.AddSwaggerGen();
 
 // Add Configuration
 builder.Services.Configure<CosmosSettings>(builder.Configuration.GetSection("Cosmos"));
-builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("AzureBlobStorage"));
+builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobStorage"));
 
 // Add Services
 builder.Services.AddSingleton<IProfileInterface, CosmosProfileStore>();
