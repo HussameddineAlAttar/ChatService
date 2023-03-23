@@ -8,7 +8,8 @@ public record Profile
     public string LastName { get; init; }
     public string ProfilePictureId { get; set; }
 
-    public Profile(string Username, string FirstName, string LastName, string ProfilePictureId)
+    public Profile([Required] string Username, [Required] string FirstName,
+        [Required] string LastName, [Required] string ProfilePictureId)
     {
         this.Username = Username;
         this.FirstName = FirstName;

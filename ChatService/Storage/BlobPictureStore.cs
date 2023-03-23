@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure;
+using ChatService.Exceptions;
 
 namespace ChatService.Storage;
 public class BlobPictureStore : IImageInterface
@@ -38,9 +39,8 @@ public class BlobPictureStore : IImageInterface
                 type = "jpeg";
                 if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    return null;
+                    throw new ImageNotFoundException();
                 }
-            
             }
 
             BlobDownloadResult content = await blobClient.DownloadContentAsync();
@@ -89,9 +89,8 @@ public class BlobPictureStore : IImageInterface
                 type = "jpeg";
                 if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    return;
+                    throw new ImageNotFoundException();
                 }
-            
             }
             await blobClient.DeleteAsync();
             return;

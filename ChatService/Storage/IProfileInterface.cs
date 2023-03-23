@@ -5,7 +5,7 @@ namespace ChatService.Storage;
 
 public interface IProfileInterface
 {
-    Task UpsertProfile(Profile profile);
+    Task CreateProfile(Profile profile);
     Task<Profile?> GetProfile(string username);
     Task DeleteProfile(string username);
 

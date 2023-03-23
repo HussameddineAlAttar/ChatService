@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ChatService.DTO;
 using ChatService.Storage;
+using ChatService.Exceptions;
 
 namespace ChatService.Controllers;
 
@@ -21,40 +22,43 @@ public class ProfileController : ControllerBase
     [HttpGet("{username}")]
     public async Task<ActionResult<Profile>> GetProfile(string username)
     {
-        var profile = await profileInterface.GetProfile(username);
-        if(profile == null)
+        try
         {
-            return NotFound($"Profile of username {username} was not found.");
+            var profile = await profileInterface.GetProfile(username);
+            return Ok(profile);
         }
-        return Ok(profile);
+        
+        catch(Exception e)
+        {
+            if(e is ProfileNotFoundException)
+            {
+                return NotFound($"Profile with username {username} not found.");
+            }
+            throw;
+        }
+        
     }
 
     [HttpPost]
     public async Task<ActionResult<Profile>> AddProfile(Profile profile)
     {
-        var existingProfile = await profileInterface.GetProfile(profile.Username);
-        if(existingProfile != null) {
-            return Conflict($"Cannot create profile. Username {profile.Username} is taken.");
-        }
-        var existingImage = await blobStorage.DownloadImage(profile.ProfilePictureId);
-        if(existingImage == null)
+        try
         {
-            return BadRequest($"Image with id {profile.ProfilePictureId} does not exist.");
+            await blobStorage.DownloadImage(profile.ProfilePictureId);
+            await profileInterface.CreateProfile(profile);
+            return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
         }
-        await profileInterface.UpsertProfile(profile);
-        return CreatedAtAction(nameof(GetProfile), new { username = profile.Username },profile);
-
+        catch(Exception e)
+        {
+            if(e is ProfileConflictException)
+            {
+                return Conflict($"Cannot create profile. Username {profile.Username} is taken.");
+            }
+            else if(e is ImageNotFoundException)
+            {
+                return BadRequest($"Image with id {profile.ProfilePictureId} does not exist.");
+            }
+            throw;
+        }     
     }
-
-    //[HttpDelete("{username}")]
-    //public async Task<ActionResult<Profile>> DeleteProfile(string username)
-    //{
-    //    var profile = await profileInterface.GetProfile(username);
-    //    if (profile == null)
-    //    {
-    //        return NotFound($"Profile of username {username} was not found");
-    //    }
-    //    await profileInterface.DeleteProfile(username);
-    //    return Ok($"Profile of username {username} successfully deleted");
-    //}
 }

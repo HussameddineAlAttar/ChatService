@@ -21,6 +21,7 @@ using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Azure.Documents.SystemFunctions;
 using Microsoft.Azure.Cosmos;
+using ChatService.Exceptions;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -123,35 +124,11 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         string randomID = "randomID_doesn't_exist";
-        blobStorageMock.Setup(mock => mock.DownloadImage(randomID)).ReturnsAsync((Image?)null);
+        blobStorageMock.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
 
         var result = await httpClient.GetAsync($"/images/{randomID}");
 
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
     }
-
-    //[Theory]
-    //[InlineData("png")]
-    //[InlineData("jpeg")]
-    //[InlineData("jpg")]
-    //public async Task DeleteImage_Valid(string validType)
-    //{
-    //    Image image = new(new MemoryStream(), "image/" + validType);
-
-    //    blobStorageMock.Setup(mock => mock.DownloadImage(testID)).ReturnsAsync(image);
-    //    blobStorageMock.Setup(mock => mock.DeleteImage(testID)).Returns(Task.CompletedTask);
-
-    //    var result = await httpClient.DeleteAsync($"/images/{testID}");
-    //    Assert.Equal(HttpStatusCode.OK, result.StatusCode);
-    //}
-
-    //[Fact]
-    //public async Task DeleteImage_NotFound()
-    //{
-    //    blobStorageMock.Setup(mock => mock.DownloadImage(testID)).ReturnsAsync((Image?)null);
-
-    //    var result = await httpClient.DeleteAsync($"/images/{testID}");
-    //    Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
-    //}
 
 }
