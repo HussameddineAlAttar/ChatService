@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs.Models;
 using ChatService.Configuration;
 using ChatService.DTO;
+using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -26,19 +27,16 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
     {
         blobStorage = factory.Services.GetRequiredService<IImageInterface>();
     }
- 
-    private readonly string testID = Guid.NewGuid().ToString();
 
     public Task InitializeAsync()
     {
         return Task.CompletedTask;
     }
 
-    public async Task DisposeAsync()
+    public Task DisposeAsync()
     {
-        // deletes one instance of png and jpeg
-        await blobStorage.DeleteImage(testID);
-        await blobStorage.DeleteImage(testID);
+        return Task.CompletedTask;
+
     }
 
     [Theory]
@@ -56,7 +54,10 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
     [Fact]
     public async Task DownloadNonExistingImage()
     {
-        Assert.Null(await blobStorage.DownloadImage("randomID_doesn't_exist"));
+        await Assert.ThrowsAsync<ImageNotFoundException>(async () =>
+        {
+            await blobStorage.DownloadImage("randomID_doesn't_exist");
+        });
     }
 
     [Theory]
@@ -84,7 +85,9 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             image.Content?.CopyTo(actualContent);
             Assert.Equal(expectedContent.ToArray(), actualContent.ToArray());
         }
+
         await blobStorage.DeleteImage(response);
+        
     }
 
     [Theory]
@@ -106,7 +109,10 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
 
         await blobStorage.DeleteImage(response);
 
-        Assert.Null(await blobStorage.DownloadImage(response));
+        await Assert.ThrowsAsync<ImageNotFoundException>(async () =>
+        {
+            await blobStorage.DownloadImage(response);
+        });
 
     }
 
@@ -120,6 +126,17 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
         {
             await blobStorage.DeleteImage(invalid);
         });
+    }
+
+
+    [Fact]
+    public async Task Delete_Image_NotFound()
+    {
+        await Assert.ThrowsAsync<ImageNotFoundException>(async () =>
+        {
+            await blobStorage.DeleteImage(Guid.NewGuid().ToString());
+        });
+
     }
 }
 

@@ -3,6 +3,7 @@ using ChatService.DTO;
 using Microsoft.Azure.Cosmos;
 using ChatService.Storage.Entities;
 using ChatService.Storage;
+using ChatService.Exceptions;
 
 namespace ChatService.Storage;
 
@@ -17,7 +18,7 @@ public class CosmosProfileStore : IProfileInterface
 
     private Container Container => _cosmosClient.GetDatabase("Profiles").GetContainer("profiles");
 
-    public async Task UpsertProfile(Profile profile)
+    public async Task CreateProfile(Profile profile)
     {
         if (profile == null ||
             string.IsNullOrWhiteSpace(profile.Username) ||
@@ -27,7 +28,18 @@ public class CosmosProfileStore : IProfileInterface
         {
             throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
         }
-        await Container.UpsertItemAsync(ToEntity(profile));
+        try
+        {
+            await Container.CreateItemAsync(ToEntity(profile));
+        }
+        catch(CosmosException e)
+        {
+            if(e.StatusCode == HttpStatusCode.Conflict)
+            {
+                throw new ProfileConflictException();
+            }
+            throw;
+        }
     }
 
     public async Task<Profile?> GetProfile(string username)
@@ -48,7 +60,7 @@ public class CosmosProfileStore : IProfileInterface
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                return null;
+                throw new ProfileNotFoundException();
             }
             throw;
         }
@@ -67,9 +79,8 @@ public class CosmosProfileStore : IProfileInterface
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                return;
+                throw new ProfileNotFoundException();
             }
-
             throw;
         }
     }
@@ -91,4 +102,5 @@ public class CosmosProfileStore : IProfileInterface
         toReturn.ProfilePictureId = entity.profilePictureID;
         return toReturn;
     }
+
 }

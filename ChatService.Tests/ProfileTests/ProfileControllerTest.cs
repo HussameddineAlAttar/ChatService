@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using Newtonsoft.Json;
 using System.Text;
+using ChatService.Exceptions;
 
 namespace ChatService.Tests.ProfileTests;
 
@@ -48,7 +49,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task GetNonExistingProfile()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync((Profile?)null);
+        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ThrowsAsync(new ProfileNotFoundException());
 
         var response = await httpClient.GetAsync($"/profile/{testProfile.Username}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -66,18 +67,18 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
 
         var json = await response.Content.ReadAsStringAsync();
         var uploadedProfile = JsonConvert.DeserializeObject<Profile>(json);
-        profileStoreMock.Verify(mock => mock.UpsertProfile(uploadedProfile), Times.Once());
+        profileStoreMock.Verify(mock => mock.CreateProfile(uploadedProfile), Times.Once());
     }
 
     [Fact]
     public async Task AddProfile_AlreadyExists()
     {
-        profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
+        profileStoreMock.Setup(m => m.CreateProfile(testProfile)).ThrowsAsync(new ProfileConflictException());
 
         var response = await httpClient.PostAsync("/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        profileStoreMock.Verify(mock => mock.UpsertProfile(testProfile), Times.Never);
+        profileStoreMock.Verify(mock => mock.CreateProfile(testProfile), Times.Once);
     }
 
     [Theory]
@@ -97,37 +98,18 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
             new StringContent(JsonConvert.SerializeObject(profile), Encoding.Default, "application/json"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        profileStoreMock.Verify(mock => mock.UpsertProfile(profile), Times.Never);
+        profileStoreMock.Verify(mock => mock.CreateProfile(profile), Times.Never);
 
     }
     [Fact]
     public async Task AddProfile_NoImageFound()
     {
-        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ReturnsAsync((Image?)null);
+        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ThrowsAsync(new ImageNotFoundException());
 
         var response = await httpClient.PostAsync("/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        profileStoreMock.Verify(m => m.UpsertProfile(testProfile), Times.Never);
+        profileStoreMock.Verify(m => m.CreateProfile(testProfile), Times.Never);
     }
-
-    //[Fact]
-    //public async Task DeleteProfile()
-    //{
-    //    profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
-
-    //    var response = await httpClient.DeleteAsync($"/profile/{testProfile.Username}");
-    //    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    //    profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.Username), Times.Once);
-    //}
-
-    //[Fact]
-    //public async Task DeleteProfile_NotExisting()
-    //{
-    //    profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync((Profile?)null);
-    //    var response = await httpClient.DeleteAsync($"/profile/{testProfile.Username}");
-    //    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    //    profileStoreMock.Verify(mock => mock.DeleteProfile(testProfile.Username), Times.Never);
-    //}
 }
