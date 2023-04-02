@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ChatService.DTO;
-using ChatService.Storage;
 using ChatService.Exceptions;
+using ChatService.Storage.Interfaces;
 
 namespace ChatService.Controllers;
 
@@ -27,7 +27,6 @@ public class ProfileController : ControllerBase
             var profile = await profileInterface.GetProfile(username);
             return Ok(profile);
         }
-        
         catch(Exception e)
         {
             if(e is ProfileNotFoundException)
@@ -36,7 +35,6 @@ public class ProfileController : ControllerBase
             }
             throw;
         }
-        
     }
 
     [HttpPost]

@@ -1,9 +1,11 @@
-using ChatService.Storage;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Options;
 using ChatService.Configuration;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
+using ChatService.Storage.Interfaces;
+using ChatService.Storage.Implementations;
+using ChatService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,6 +35,10 @@ builder.Services.AddSingleton(sp =>
     return new BlobServiceClient(blobSettings.Value.ConnectionString);
 });
 
+builder.Services.AddSingleton<IMessagesStore, CosmosMessageStore>();
+builder.Services.AddSingleton<IConversationStore, CosmosConversationStore>();
+builder.Services.AddSingleton<IConversationService, ConversationService>();
+builder.Services.AddSingleton<IMessageService, MessageService>();
 
 var app = builder.Build();
 // Configure the HTTP request pipeline.

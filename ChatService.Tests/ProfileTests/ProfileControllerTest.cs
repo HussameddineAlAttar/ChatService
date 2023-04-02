@@ -1,4 +1,3 @@
-using ChatService.Storage;
 using ChatService.DTO;
 using ChatService.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -10,6 +9,7 @@ using System.Net;
 using Newtonsoft.Json;
 using System.Text;
 using ChatService.Exceptions;
+using ChatService.Storage.Interfaces;
 
 namespace ChatService.Tests.ProfileTests;
 

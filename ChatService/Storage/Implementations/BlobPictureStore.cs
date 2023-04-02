@@ -2,14 +2,14 @@
 using ChatService.DTO;
 using Microsoft.Azure.Cosmos;
 using ChatService.Storage.Entities;
-using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure;
 using ChatService.Exceptions;
+using ChatService.Storage.Interfaces;
 
-namespace ChatService.Storage;
+namespace ChatService.Storage.Implementations;
 public class BlobPictureStore : IImageInterface
 {
     private readonly BlobServiceClient _blobServiceClient;
@@ -60,7 +60,7 @@ public class BlobPictureStore : IImageInterface
         string pictureID = Guid.NewGuid().ToString();
         var file = request.File;
         string type = Path.GetExtension(file.FileName);
-        if(type == ".jpg")
+        if (type == ".jpg")
         {
             type = ".jpeg";
         }
@@ -68,12 +68,12 @@ public class BlobPictureStore : IImageInterface
         var blobClient = Container.GetBlobClient(blobName);
         await blobClient.UploadAsync(file.OpenReadStream(), true);
         return pictureID;
-        
+
     }
 
     public async Task DeleteImage(string? id)
     {
-        if(string.IsNullOrEmpty(id) || string.IsNullOrWhiteSpace(id))
+        if (string.IsNullOrEmpty(id) || string.IsNullOrWhiteSpace(id))
         {
             throw new ArgumentNullException();
         }

@@ -1,5 +1,4 @@
 ﻿using ChatService.DTO;
-using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +21,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Azure.Documents.SystemFunctions;
 using Microsoft.Azure.Cosmos;
 using ChatService.Exceptions;
+using ChatService.Storage.Interfaces;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -42,7 +42,6 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
             builder.ConfigureTestServices(services => { services.AddSingleton(blobStorageMock.Object); });
         }).CreateClient();
     }
-
 
     [Theory]
     [InlineData("png")]

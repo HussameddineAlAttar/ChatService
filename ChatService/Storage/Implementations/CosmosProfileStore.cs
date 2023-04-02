@@ -2,10 +2,10 @@
 using ChatService.DTO;
 using Microsoft.Azure.Cosmos;
 using ChatService.Storage.Entities;
-using ChatService.Storage;
 using ChatService.Exceptions;
+using ChatService.Storage.Interfaces;
 
-namespace ChatService.Storage;
+namespace ChatService.Storage.Implementations;
 
 public class CosmosProfileStore : IProfileInterface
 {
@@ -32,9 +32,9 @@ public class CosmosProfileStore : IProfileInterface
         {
             await Container.CreateItemAsync(ToEntity(profile));
         }
-        catch(CosmosException e)
+        catch (CosmosException e)
         {
-            if(e.StatusCode == HttpStatusCode.Conflict)
+            if (e.StatusCode == HttpStatusCode.Conflict)
             {
                 throw new ProfileConflictException();
             }
@@ -42,7 +42,7 @@ public class CosmosProfileStore : IProfileInterface
         }
     }
 
-    public async Task<Profile?> GetProfile(string username)
+    public async Task<Profile> GetProfile(string username)
     {
         try
         {

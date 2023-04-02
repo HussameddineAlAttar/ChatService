@@ -3,7 +3,7 @@ using Azure.Storage.Blobs.Models;
 using ChatService.Configuration;
 using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage;
+using ChatService.Storage.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Azure.Cosmos;

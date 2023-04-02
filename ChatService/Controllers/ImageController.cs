@@ -1,19 +1,17 @@
 ﻿using Azure.Storage.Blobs.Models;
 using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage;
+using ChatService.Storage.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("images")]
 public class ImageController : ControllerBase
 {
-    private readonly IProfileInterface profileInterface;
     private readonly IImageInterface imageInterface;
 
-    public ImageController(IProfileInterface _profileInterface, IImageInterface _imageInterface)
+    public ImageController(IImageInterface _imageInterface)
     {
-        profileInterface = _profileInterface;
         imageInterface = _imageInterface;
     }
 
