@@ -62,4 +62,26 @@ public class MessageController : ControllerBase
         }
     }
 
+    [HttpGet("test")]
+    public async Task<ActionResult<List<MessageTokenResponse>>> GetMessages(string conversationId, int limit = 10, long? lastSeenMessageTime = 1, string? continuationToken = null)
+    {
+        try
+        {
+            var messages = await messageService.GetMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            return Ok(messages);
+        }
+        catch (Exception e)
+        {
+            if (e is ConversationNotFoundException)
+            {
+                return NotFound($"Conversation with id {conversationId} not found.");
+            }
+            else if (e is MessageNotFoundException)
+            {
+                return NotFound($"Messages for conversation {conversationId} not found.");
+            }
+            throw;
+        }
+    }
+
 }

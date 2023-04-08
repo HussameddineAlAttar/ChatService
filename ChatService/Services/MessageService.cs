@@ -35,6 +35,25 @@ public class MessageService : IMessageService
         }
     }
 
+    public async Task<MessageTokenResponse> GetMessages(string conversationId, int limit = 10, long? lastSeenMessageTime = null, string? continuationToken = null)
+    {
+        List<EnumMessageResponse> messageResponses = new();
+        try
+        {
+            (var messages, string token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            for (int i = 0; i < messages.Count; i++)
+            {
+                EnumMessageResponse response = new(messages[i].Text, messages[i].SenderUsername, messages[i].Time);
+                messageResponses.Add(response);
+            }
+            return new MessageTokenResponse(messageResponses, token);
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
     public async Task<long> SendMessage(string conversationId, Message message, bool FirstTime = false)
     {
         List<string> usernames = conversationId.Split("_").ToList();

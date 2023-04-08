@@ -56,6 +56,39 @@ public class CosmosMessageStore : IMessagesStore
         return messages;
     }
 
+    public async Task<(List<Message> messages, string continuationToken)> EnumerateMessages(string conversationId, int limit, long? lastSeenMessageTime, string continuationToken)
+    {
+        string queryString = "SELECT * FROM Messages m WHERE m.partitionKey = @partitionKey" +
+                        " AND m.createdTime >= @lastSeenMessageTime" +
+                        " ORDER BY m.createdTime DESC";
+
+        var query = new QueryDefinition(queryString)
+            .WithParameter("@partitionKey", conversationId)
+            .WithParameter("@lastSeenMessageTime", lastSeenMessageTime);
+
+        var queryOptions = new QueryRequestOptions
+        {
+            MaxItemCount = limit,
+            ConsistencyLevel = ConsistencyLevel.Session
+        };
+        var iterator = Container.GetItemQueryIterator<MessageEntity>(query, requestOptions: queryOptions, continuationToken: continuationToken);
+        var response = await iterator.ReadNextAsync();
+
+        List<Message> messages = new();
+
+        foreach (var entity in response)
+        {
+            messages.Add(ToMessage(entity));
+        }
+
+        if (messages.Count == 0)
+        {
+            throw new MessageNotFoundException();
+        }
+
+        return (messages, response.ContinuationToken);
+    }
+
     public async Task DeleteMessage(string conversationId, string messageId)
     {
         try
@@ -112,4 +145,5 @@ public class CosmosMessageStore : IMessagesStore
         return toReturn;
     }
 
+    
 }

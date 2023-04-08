@@ -2,6 +2,7 @@
 using ChatService.Exceptions;
 using ChatService.Extensions;
 using ChatService.Storage.Interfaces;
+using System.Net;
 
 namespace ChatService.Services;
 
@@ -48,6 +49,22 @@ public class ConversationService : IConversationService
             var conversations = await conversationStore.EnumerateConversations(username);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
             return convResponses;
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public async Task<ConvResponseWithToken> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    {
+        try
+        {
+            await profileStore.GetProfile(username);
+            (List<Conversation> conversations, string token) = await conversationStore.EnumerateConversations(
+                username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
+            return new ConvResponseWithToken(convResponses, token);
         }
         catch
         {

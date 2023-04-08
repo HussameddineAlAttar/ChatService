@@ -5,6 +5,8 @@ using ChatService.Storage.Interfaces;
 using Microsoft.Azure.Cosmos;
 using ChatService.Services;
 using System.Net;
+using System.Text;
+using System;
 
 namespace ChatService.Storage.Implementations;
 
@@ -83,6 +85,41 @@ public class CosmosConversationStore : IConversationStore
         conversations = conversations.OrderByDescending(x => x.ModifiedTime).ToList();
         return conversations;
     }
+
+    public async Task<(List<Conversation> conversations, string continuationToken)> EnumerateConversations(
+                string username, int limit, long? lastSeenConversationTime, string continuationToken)
+    {
+        string queryString = "SELECT * FROM Conversations c WHERE c.partitionKey = @partitionKey" +
+                                " AND c.lastModifiedTime >= @lastSeenConversationTime" +
+                                " ORDER BY c.lastModifiedTime DESC";
+
+        var query = new QueryDefinition(queryString)
+            .WithParameter("@partitionKey", username)
+            .WithParameter("@lastSeenConversationTime", lastSeenConversationTime);
+
+        var queryOptions = new QueryRequestOptions
+        {
+            MaxItemCount = limit,
+            ConsistencyLevel = ConsistencyLevel.Session
+        };
+        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions:queryOptions, continuationToken: continuationToken);
+        var response = await iterator.ReadNextAsync();
+
+        List<Conversation> conversations = new();
+
+        foreach (var entity in response)
+        {
+            conversations.Add(ToConversation(entity));
+        }
+
+        if (conversations.Count == 0)
+        {
+            throw new ConversationNotFoundException();
+        }
+
+        return (conversations, response.ContinuationToken);
+    }
+
 
     public async Task ModifyTime(string username, string conversationId, long time)
     {

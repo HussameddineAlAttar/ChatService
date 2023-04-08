@@ -78,4 +78,27 @@ public class ConversationController : ControllerBase
             throw;
         }
     }
+
+    [HttpGet]
+    public async Task<ActionResult<ConvResponseWithToken>> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    {
+        try
+        {
+            var responseWithToken = await conversationService.GetConversations(username, limit, lastSeenConversationTime, continuationToken);
+            return Ok(responseWithToken);
+        }
+        catch (Exception e)
+        {
+            if (e is ConversationNotFoundException)
+            {
+                return NotFound($"Conversations for user {username} not found");
+            }
+            else if (e is ProfileNotFoundException)
+            {
+                return NotFound($"Profile with username {username} not found");
+            }
+            throw;
+        }
+    }
+
 }
