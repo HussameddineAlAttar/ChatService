@@ -1,11 +1,10 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage.Entities;
-using ChatService.Storage.Interfaces;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using System.Net;
-namespace ChatService.Storage.Implementations;
+namespace ChatService.Storage.Cosmos;
 
 public class CosmosMessageStore : IMessagesStore
 {
@@ -24,11 +23,11 @@ public class CosmosMessageStore : IMessagesStore
         {
             await Container.CreateItemAsync(ToEntity(message, conversationId));
         }
-        catch(CosmosException e)
+        catch (CosmosException e)
         {
-            if(e.StatusCode == HttpStatusCode.Conflict)
+            if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new MessageConflictException();
+                throw new MessageConflictException($"Message with id {message.Id} already exists.");
             }
             throw;
         }
@@ -49,7 +48,7 @@ public class CosmosMessageStore : IMessagesStore
 
         if (entities.Count == 0)
         {
-            throw new ConversationNotFoundException();
+            throw new ConversationNotFoundException($"Conversation of id {conversationId} not found");
         }
 
         var messages = entities.Select(ToMessage).OrderByDescending(x => x.Time).ToList();
@@ -83,7 +82,7 @@ public class CosmosMessageStore : IMessagesStore
 
         if (messages.Count == 0)
         {
-            throw new MessageNotFoundException();
+            throw new MessageNotFoundException($"No more messages found for conversation {conversationId}.");
         }
 
         return (messages, response.ContinuationToken);
@@ -98,9 +97,13 @@ public class CosmosMessageStore : IMessagesStore
                 partitionKey: new PartitionKey(conversationId)
             );
         }
-        catch
+        catch (CosmosException e)
         {
-            return;
+            if(e.StatusCode == HttpStatusCode.NotFound)
+            {
+                return;
+            }
+            throw;
         }
     }
 
@@ -122,7 +125,7 @@ public class CosmosMessageStore : IMessagesStore
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new MessageNotFoundException();
+                throw new MessageNotFoundException($"Message of id {messageId} not found.");
             }
             throw;
         }
@@ -145,5 +148,5 @@ public class CosmosMessageStore : IMessagesStore
         return toReturn;
     }
 
-    
+
 }

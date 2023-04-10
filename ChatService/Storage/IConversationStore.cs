@@ -1,14 +1,14 @@
 ﻿using ChatService.DTO;
 
-namespace ChatService.Storage.Interfaces;
+namespace ChatService.Storage;
 
 public interface IConversationStore
 {
-    Task CreateConversation(Conversation conversation, string username);
+    Task CreateConversation(Conversation conversation);
     Task<Conversation> FindConversationById(string id);
     Task<List<Conversation>> EnumerateConversations(string username);
     Task<(List<Conversation> conversations, string continuationToken)> EnumerateConversations(
                 string username, int limit, long? lastSeenConversationTime, string continuationToken);
-    Task ModifyTime(string username, string conversationId, long time);
-    Task DeleteConversation(string conversationId, string username);
+    Task UpdateLastModifiedTime(string conversationId, long unixTime);
+    Task DeleteConversation(string conversationId);
 }

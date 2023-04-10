@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Extensions;
 

@@ -7,10 +7,9 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
 
-namespace ChatService.Storage.Implementations;
-public class BlobPictureStore : IImageInterface
+namespace ChatService.Storage.AzureBlobStorage;
+public class BlobPictureStore : IImageStore
 {
     private readonly BlobServiceClient _blobServiceClient;
 
@@ -39,7 +38,7 @@ public class BlobPictureStore : IImageInterface
                 type = "jpeg";
                 if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    throw new ImageNotFoundException();
+                    throw new ImageNotFoundException($"Image of id {id} not found.");
                 }
             }
 
@@ -75,7 +74,7 @@ public class BlobPictureStore : IImageInterface
     {
         if (string.IsNullOrEmpty(id) || string.IsNullOrWhiteSpace(id))
         {
-            throw new ArgumentNullException();
+            throw new ArgumentNullException("Id cannot be null or empty");
         }
         try
         {
@@ -89,7 +88,7 @@ public class BlobPictureStore : IImageInterface
                 type = "jpeg";
                 if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
                 {
-                    throw new ImageNotFoundException();
+                    throw new ImageNotFoundException($"Image of id {id} not found.");
                 }
             }
             await blobClient.DeleteAsync();

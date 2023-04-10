@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,7 +14,7 @@ namespace ChatService.Tests.ProfileTests;
 
 public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
-    private readonly IProfileInterface profileStore;
+    private readonly IProfileStore profileStore;
 
     private readonly Profile testProfile;
     private readonly string pictureID = Guid.NewGuid().ToString();
@@ -23,7 +23,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
-        profileStore = factory.Services.GetRequiredService<IProfileInterface>();
+        profileStore = factory.Services.GetRequiredService<IProfileStore>();
         testProfile = new Profile("randomUsernameForTest", "FooTest", "BarTest", pictureID);
     }
 

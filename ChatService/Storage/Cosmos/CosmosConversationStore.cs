@@ -1,14 +1,16 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage.Entities;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.Azure.Cosmos;
 using ChatService.Services;
 using System.Net;
 using System.Text;
 using System;
+using ChatService.Extensions;
+using Microsoft.VisualBasic;
 
-namespace ChatService.Storage.Implementations;
+namespace ChatService.Storage.Cosmos;
 
 public class CosmosConversationStore : IConversationStore
 {
@@ -21,17 +23,21 @@ public class CosmosConversationStore : IConversationStore
 
     private Container Container => cosmosClient.GetDatabase("Profiles").GetContainer("Conversations");
 
-    public async Task CreateConversation(Conversation conversation, string username)
+    public async Task CreateConversation(Conversation conversation)
     {
         try
         {
-            await Container.CreateItemAsync(ToEntity(conversation, username));
-        }
-        catch(CosmosException e)
-        {
-            if(e.StatusCode == HttpStatusCode.Conflict)
+            var tasks = conversation.Participants.Select(async username =>
             {
-                throw new ConversationConflictException();
+                await Container.CreateItemAsync(ToEntity(conversation, username));
+            });
+            await Task.WhenAll(tasks);
+        }
+        catch (CosmosException e)
+        {
+            if (e.StatusCode == HttpStatusCode.Conflict)
+            {
+                throw new ConversationConflictException($"Conversation {conversation.Id} already exists.");
             }
             throw;
         }
@@ -43,7 +49,7 @@ public class CosmosConversationStore : IConversationStore
         {
             var entity = await Container.ReadItemAsync<ConversationEntity>(
                 id: conversationId,
-                partitionKey: new PartitionKey(conversationId.Split("_")[0]),
+                partitionKey: new PartitionKey(conversationId.SplitToUsernames()[0]),
                 new ItemRequestOptions
                 {
                     ConsistencyLevel = ConsistencyLevel.Session
@@ -55,7 +61,7 @@ public class CosmosConversationStore : IConversationStore
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new ConversationNotFoundException();
+                throw new ConversationNotFoundException($"Conversation with id {conversationId} not found.");
             }
             throw;
         }
@@ -77,9 +83,9 @@ public class CosmosConversationStore : IConversationStore
             }
         }
 
-        if(conversations.Count == 0)
+        if (conversations.Count == 0)
         {
-            throw new ConversationNotFoundException();
+            throw new ConversationNotFoundException($"Conversation for user {username} not found.");
         }
 
         conversations = conversations.OrderByDescending(x => x.ModifiedTime).ToList();
@@ -102,7 +108,7 @@ public class CosmosConversationStore : IConversationStore
             MaxItemCount = limit,
             ConsistencyLevel = ConsistencyLevel.Session
         };
-        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions:queryOptions, continuationToken: continuationToken);
+        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions: queryOptions, continuationToken: continuationToken);
         var response = await iterator.ReadNextAsync();
 
         List<Conversation> conversations = new();
@@ -114,51 +120,66 @@ public class CosmosConversationStore : IConversationStore
 
         if (conversations.Count == 0)
         {
-            throw new ConversationNotFoundException();
+            throw new ConversationNotFoundException($"No more conversations found for user {username}.");
         }
 
         return (conversations, response.ContinuationToken);
     }
 
 
-    public async Task ModifyTime(string username, string conversationId, long time)
+    public async Task UpdateLastModifiedTime(string conversationId, long unixTime)
     {
+        List<string> usernames = conversationId.SplitToUsernames();
         try
         {
-            var entity = await Container.ReadItemAsync<ConversationEntity>(
-            id: conversationId,
-            partitionKey: new PartitionKey(username),
-            new ItemRequestOptions
+            var tasks = usernames.Select(async username =>
             {
-                ConsistencyLevel = ConsistencyLevel.Session
-            }
-            );
-            var conversation = ToConversation(entity);
-            conversation.ModifiedTime = time;
-            await Container.UpsertItemAsync(ToEntity(conversation, username));  
+                var entity = await Container.ReadItemAsync<ConversationEntity>(
+                    id: conversationId,
+                    partitionKey: new PartitionKey(username),
+                    new ItemRequestOptions
+                    {
+                        ConsistencyLevel = ConsistencyLevel.Session
+                    }
+                );
+                var conversation = ToConversation(entity);
+                conversation.ModifiedTime = unixTime;
+                await Container.UpsertItemAsync(ToEntity(conversation, username));
+            });
+            await Task.WhenAll(tasks);
         }
         catch (CosmosException e)
         {
             if (e.StatusCode == HttpStatusCode.NotFound)
             {
-                throw new ConversationNotFoundException();
+                throw new ConversationNotFoundException($"Conversation with id {conversationId} not found.");
             }
             throw;
         }
     }
 
-    public async Task DeleteConversation(string conversationId, string username)
+
+    public async Task DeleteConversation(string conversationId)
     {
+        List<string> usernames = conversationId.SplitToUsernames();
         try
         {
-            await Container.DeleteItemAsync<Message>(
+            var tasks = usernames.Select(async username =>
+            {
+                await Container.DeleteItemAsync<Message>(
                 id: conversationId,
                 partitionKey: new PartitionKey(username)
-            );
+                );
+            });
+            await Task.WhenAll(tasks);
         }
-        catch
+        catch(CosmosException e) 
         {
-            return;
+            if (e.StatusCode == HttpStatusCode.NotFound)
+            {
+                return;
+            }
+            throw;
         }
     }
 

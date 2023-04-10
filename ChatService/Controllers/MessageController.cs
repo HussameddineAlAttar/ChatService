@@ -1,8 +1,9 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 
 namespace ChatService.Controllers;
 
@@ -67,8 +68,12 @@ public class MessageController : ControllerBase
     {
         try
         {
-            var messages = await messageService.GetMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
-            return Ok(messages);
+            (var messages, var token) = await messageService.GetMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            var messageResponses = messages.Select(message =>
+            new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
+                .ToList();
+            var messageTokenResponse = new MessageTokenResponse(messageResponses, token);
+            return Ok(messageTokenResponse);
         }
         catch (Exception e)
         {

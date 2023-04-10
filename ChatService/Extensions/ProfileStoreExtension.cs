@@ -1,28 +1,34 @@
 ﻿using ChatService.DTO;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Extensions;
 
 public static class ProfileStoreExtension
 {
-    public static async Task<List<string>> CheckFor_NonExistingProfile(this IProfileInterface store, List<string> usernames)
+    public static async Task<List<string>> CheckForNonExistingProfile(this IProfileStore store, List<string> usernames)
     {
-        List<string> invalidProfiles = new();
+        List<Task> tasks = new();
+        List<string> missingProfileUsernames = new();
 
-        for (int i = 0; i < usernames.Count; i++)
+        foreach (string username in usernames)
         {
-            try
+            tasks.Add(Task.Run(async () =>
             {
-                await store.GetProfile(usernames[i]);
-            }
-            catch
-            {
-                invalidProfiles.Add(usernames[i]);
-            }
+                try
+                {
+                    await store.GetProfile(username);
+                }
+                catch
+                {
+                    missingProfileUsernames.Add(username);
+                }
+            }));
         }
-        return invalidProfiles;
+        await Task.WhenAll(tasks);
+        return missingProfileUsernames;
     }
-    public static async Task<List<ConversationResponse>> Conversation_to_ConversationResponse(this IProfileInterface store, string username, List<Conversation> conversations)
+
+    public static async Task<List<ConversationResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string username, List<Conversation> conversations)
     {
         List<ConversationResponse> response = new();
         for (int i = 0; i < conversations.Count; ++i)

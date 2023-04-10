@@ -2,7 +2,7 @@
 using ChatService.Exceptions;
 using ChatService.Extensions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -19,7 +19,7 @@ public class ConversationServiceTest
 {
     private readonly Mock<IMessageService> messageServiceMock = new();
     private readonly Mock<IConversationStore> conversationStoreMock = new();
-    private readonly Mock<IProfileInterface> profileStoreMock = new();
+    private readonly Mock<IProfileStore> profileStoreMock = new();
     private readonly ConversationService conversationService;
 
     private readonly CreateConvoRequest convoRequest;
@@ -49,10 +49,7 @@ public class ConversationServiceTest
         await conversationService.CreateConversation(convoRequest);
 
         messageServiceMock.Verify(x => x.SendMessage(conversation.Id, message, true), Times.Once);
-        foreach (var participant in participants)
-        {
-            conversationStoreMock.Verify(x => x.CreateConversation(convoRequest.Conversation, participant), Times.Once);
-        }
+        conversationStoreMock.Verify(x => x.CreateConversation(convoRequest.Conversation), Times.Once);
     }
 
     [Fact]
@@ -116,18 +113,18 @@ public class ConversationServiceTest
     [Fact]
     public async Task ModifyTime()
     {
-        conversationStoreMock.Setup(x => x.ModifyTime(username, conversation.Id, 123)).Returns(Task.CompletedTask);
-        var time = await conversationService.ModifyTime(conversation.Id, 123);
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation.Id, 123)).Returns(Task.CompletedTask);
+        var time = await conversationService.UpdateLastModifiedTime(conversation.Id, 123);
         Assert.Equal(123, time);
     }
 
     [Fact]
     public async Task ModifyTime_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.ModifyTime(username, conversation.Id, It.IsAny<long>())).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation.Id, It.IsAny<long>())).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
-            await conversationService.ModifyTime(conversation.Id, 123);
+            await conversationService.UpdateLastModifiedTime(conversation.Id, 123);
         });
     }
 }

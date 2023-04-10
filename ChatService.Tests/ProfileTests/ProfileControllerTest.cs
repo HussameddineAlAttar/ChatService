@@ -9,14 +9,14 @@ using System.Net;
 using Newtonsoft.Json;
 using System.Text;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Tests.ProfileTests;
 
 public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IProfileInterface> profileStoreMock = new();
-    private readonly Mock<IImageInterface> blobStorageMock = new();
+    private readonly Mock<IProfileStore> profileStoreMock = new();
+    private readonly Mock<IImageStore> blobStorageMock = new();
     private readonly HttpClient httpClient;
 
     private readonly Profile testProfile;

@@ -2,7 +2,7 @@
 using ChatService.Exceptions;
 using ChatService.Extensions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
@@ -52,8 +52,8 @@ public class MessageServiceTest
     public async Task SendMessage()
     {
         messageStoreMock.Setup(x => x.SendMessage(conversationId, message1)).Returns(Task.CompletedTask);
-        conversationStoreMock.Setup(x => x.ModifyTime("user1", conversationId, message1.Time)).Returns(Task.CompletedTask);
-        conversationStoreMock.Setup(x => x.ModifyTime("user2", conversationId, message1.Time)).Returns(Task.CompletedTask);
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversationId, message1.Time)).Returns(Task.CompletedTask);
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversationId, message1.Time)).Returns(Task.CompletedTask);
 
         var result = await messageService.SendMessage(conversationId, message1);
         Assert.Equal(message1.Time, result);

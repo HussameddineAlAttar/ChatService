@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Controllers;
 
@@ -10,10 +10,10 @@ namespace ChatService.Controllers;
 [Route("profile")]
 public class ProfileController : ControllerBase
 {
-    private readonly IProfileInterface profileInterface;
-    private readonly IImageInterface blobStorage;
+    private readonly IProfileStore profileInterface;
+    private readonly IImageStore blobStorage;
 
-    public ProfileController(IProfileInterface _profileInterface, IImageInterface _imageInterface)
+    public ProfileController(IProfileStore _profileInterface, IImageStore _imageInterface)
     {
         profileInterface = _profileInterface;
         blobStorage = _imageInterface;

@@ -2,11 +2,11 @@
 
 public class MessageTokenResponse
 {
-    public MessageTokenResponse(List<EnumMessageResponse> responses, string token)
+    public MessageTokenResponse(List<EnumMessageResponse> Messages, string token)
     {
-        this.responses = responses;
+        this.Messages = Messages;
         continuationToken = token;
     }
-    public List<EnumMessageResponse> responses { get; }
+    public List<EnumMessageResponse> Messages { get; }
     public string continuationToken { get; }
 }

@@ -1,7 +1,7 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ChatService.Controllers;

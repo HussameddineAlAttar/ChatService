@@ -21,14 +21,14 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Azure.Documents.SystemFunctions;
 using Microsoft.Azure.Cosmos;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Tests.ImageTests;
 
 public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IProfileInterface> profileStoreMock = new();
-    private readonly Mock<IImageInterface> blobStorageMock = new();
+    private readonly Mock<IProfileStore> profileStoreMock = new();
+    private readonly Mock<IImageStore> blobStorageMock = new();
     private readonly HttpClient httpClient;
 
     private readonly MultipartFormDataContent dataContent = new();

@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 
-namespace ChatService.Storage.Interfaces;
+namespace ChatService.Storage;
 
 public interface IMessagesStore
 {

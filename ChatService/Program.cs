@@ -3,9 +3,10 @@ using Microsoft.Extensions.Options;
 using ChatService.Configuration;
 using Azure.Storage.Blobs;
 using Microsoft.Extensions.Configuration;
-using ChatService.Storage.Interfaces;
-using ChatService.Storage.Implementations;
+using ChatService.Storage.AzureBlobStorage;
 using ChatService.Services;
+using ChatService.Storage;
+using ChatService.Storage.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,14 +22,14 @@ builder.Services.Configure<CosmosSettings>(builder.Configuration.GetSection("Cos
 builder.Services.Configure<BlobSettings>(builder.Configuration.GetSection("BlobStorage"));
 
 // Add Services
-builder.Services.AddSingleton<IProfileInterface, CosmosProfileStore>();
+builder.Services.AddSingleton<IProfileStore, CosmosProfileStore>();
 builder.Services.AddSingleton(sp =>
 {
     var cosmosOptions = sp.GetRequiredService<IOptions<CosmosSettings>>();
     return new CosmosClient(cosmosOptions.Value.ConnectionString);
 });
 
-builder.Services.AddSingleton<IImageInterface, BlobPictureStore>();
+builder.Services.AddSingleton<IImageStore, BlobPictureStore>();
 builder.Services.AddSingleton(sp =>
 {
     var blobSettings = sp.GetRequiredService<IOptions<BlobSettings>>();

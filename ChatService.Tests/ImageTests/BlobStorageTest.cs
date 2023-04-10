@@ -3,7 +3,7 @@ using Azure.Storage.Blobs.Models;
 using ChatService.Configuration;
 using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Azure.Cosmos;
@@ -20,12 +20,12 @@ namespace ChatService.Tests.ImageTests;
 
 public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
-    private readonly IImageInterface blobStorage;
+    private readonly IImageStore blobStorage;
 
 
     public BlobStorageTest(WebApplicationFactory<Program> factory)
     {
-        blobStorage = factory.Services.GetRequiredService<IImageInterface>();
+        blobStorage = factory.Services.GetRequiredService<IImageStore>();
     }
 
     public Task InitializeAsync()

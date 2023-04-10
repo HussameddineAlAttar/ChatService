@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -60,11 +60,11 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
 
     public async Task DisposeAsync()
     {
-        await conversationStore.DeleteConversation(conversation.Id, user1);
-        await conversationStore.DeleteConversation(conversation_conflict.Id, user1);
-        await conversationStore.DeleteConversation(conversation_enum1.Id, user_enum1);
-        await conversationStore.DeleteConversation(conversation_enum2.Id, user_enum1);
-        await conversationStore.DeleteConversation(conversation_modify.Id, user_enum2);
+        await conversationStore.DeleteConversation(conversation.Id);
+        await conversationStore.DeleteConversation(conversation_conflict.Id);
+        await conversationStore.DeleteConversation(conversation_enum1.Id);
+        await conversationStore.DeleteConversation(conversation_enum2.Id);
+        await conversationStore.DeleteConversation(conversation_modify.Id);
     }
 
     public bool EqualConversations(Conversation conv1, Conversation conv2)
@@ -88,7 +88,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     [Fact]
     public async Task CreateConversation()
     {
-        await conversationStore.CreateConversation(conversation, user1);
+        await conversationStore.CreateConversation(conversation);
         var stored_conversation = await conversationStore.FindConversationById(conversation.Id);
         Assert.True(EqualConversations(conversation, stored_conversation));
     }
@@ -96,10 +96,10 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     [Fact]
     public async Task CreateConversation_Conflict()
     {
-        await conversationStore.CreateConversation(conversation_conflict, user1);
+        await conversationStore.CreateConversation(conversation_conflict);
         await Assert.ThrowsAsync<ConversationConflictException>(async () =>
         {
-            await conversationStore.CreateConversation(conversation_conflict, user1);
+            await conversationStore.CreateConversation(conversation_conflict);
         });
     }
 
@@ -116,8 +116,8 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     public async Task EnumConversations()
     {
         List<Conversation> myConv = new() { conversation_enum1, conversation_enum2 };
-        await conversationStore.CreateConversation(conversation_enum1, user_enum1);
-        await conversationStore.CreateConversation(conversation_enum2, user_enum1);
+        await conversationStore.CreateConversation(conversation_enum1);
+        await conversationStore.CreateConversation(conversation_enum2);
 
         var uploadedConversations = await conversationStore.EnumerateConversations(user_enum1);
         Assert.Equal(myConv.Count, uploadedConversations.Count);
@@ -139,9 +139,9 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     [Fact]
     public async Task ModifyTime()
     {
-        await conversationStore.CreateConversation(conversation_modify, user_enum2);
+        await conversationStore.CreateConversation(conversation_modify);
         conversation_modify.ModifiedTime = 987;
-        await conversationStore.ModifyTime(user_enum2, conversation_modify.Id, 987);
+        await conversationStore.UpdateLastModifiedTime(conversation_modify.Id, 987);
         var modifiedConversation = await conversationStore.FindConversationById(conversation_modify.Id);
         Assert.True(EqualConversations(conversation_modify, modifiedConversation));
     }
@@ -151,7 +151,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     {
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
-            await conversationStore.ModifyTime(Guid.NewGuid().ToString(), Guid.NewGuid().ToString(), 123);
+            await conversationStore.UpdateLastModifiedTime(Guid.NewGuid().ToString(), 123);
         });
     }
 }
