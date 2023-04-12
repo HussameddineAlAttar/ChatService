@@ -1,7 +1,7 @@
 ﻿using ChatService.DTO;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ChatService.Storage;
+namespace ChatService.Storage.Interfaces;
 
 public interface IImageInterface
 {

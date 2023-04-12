@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage;
+using ChatService.Storage.Interfaces;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
