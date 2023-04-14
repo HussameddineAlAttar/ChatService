@@ -8,7 +8,7 @@ using Newtonsoft.Json.Linq;
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("conversations/{conversationId}/messages")]
+[Route("api/conversations/{conversationId}/messages")]
 public class MessageController : ControllerBase
 {
     private readonly IMessageService messageService;

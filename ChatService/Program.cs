@@ -35,6 +35,7 @@ builder.Services.AddSingleton(sp =>
     var blobSettings = sp.GetRequiredService<IOptions<BlobSettings>>();
     return new BlobServiceClient(blobSettings.Value.ConnectionString);
 });
+builder.Services.AddSingleton<IImageService, ImageService>();
 
 builder.Services.AddSingleton<IMessagesStore, CosmosMessageStore>();
 builder.Services.AddSingleton<IConversationStore, CosmosConversationStore>();

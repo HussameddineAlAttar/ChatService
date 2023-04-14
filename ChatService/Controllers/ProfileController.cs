@@ -7,16 +7,14 @@ namespace ChatService.Controllers;
 
 
 [ApiController]
-[Route("profile")]
+[Route("api/profile")]
 public class ProfileController : ControllerBase
 {
     private readonly IProfileStore profileInterface;
-    private readonly IImageStore blobStorage;
 
-    public ProfileController(IProfileStore _profileInterface, IImageStore _imageInterface)
+    public ProfileController(IProfileStore _profileInterface)
     {
         profileInterface = _profileInterface;
-        blobStorage = _imageInterface;
     }
 
     [HttpGet("{username}")]
@@ -42,7 +40,6 @@ public class ProfileController : ControllerBase
     {
         try
         {
-            await blobStorage.DownloadImage(profile.ProfilePictureId);
             await profileInterface.CreateProfile(profile);
             return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
         }
@@ -51,10 +48,6 @@ public class ProfileController : ControllerBase
             if(e is ProfileConflictException)
             {
                 return Conflict($"Cannot create profile. Username {profile.Username} is taken.");
-            }
-            else if(e is ImageNotFoundException)
-            {
-                return BadRequest($"Image with id {profile.ProfilePictureId} does not exist.");
             }
             throw;
         }     

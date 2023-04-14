@@ -65,9 +65,8 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
     [InlineData("jpeg")]
     public async Task UpoadImage(string type)
     {
-        var stream = new MemoryStream();
-        Image testImage = new Image(stream, type);
-        FormFile file = new FormFile(stream, 0, stream.Length, null, "randomFileName." + type)
+        var testStream = new MemoryStream();
+        FormFile file = new FormFile(testStream, 0, testStream.Length, null, "randomFileName." + type)
         {
             Headers = new HeaderDictionary(),
             ContentType = "image/" + type
@@ -76,13 +75,13 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
         UploadImageRequest request = new(file);
         var response = await blobStorage.UploadImage(request);
 
-        Image image = await blobStorage.DownloadImage(response);
+        Stream imageStream = await blobStorage.DownloadImage(response);
 
         using (var expectedContent = new MemoryStream())
         using (var actualContent = new MemoryStream())
         {
-            testImage.Content?.CopyTo(expectedContent);
-            image.Content?.CopyTo(actualContent);
+            imageStream.CopyTo(expectedContent);
+            imageStream.CopyTo(actualContent);
             Assert.Equal(expectedContent.ToArray(), actualContent.ToArray());
         }
 
