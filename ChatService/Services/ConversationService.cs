@@ -21,7 +21,7 @@ public class ConversationService : IConversationService
 
     public async Task CreateConversation(CreateConvoRequest convoRequest)
     {
-        var conversation = convoRequest.Conversation;
+        var conversation = new Conversation(convoRequest.Participants);
         var NonExistingProfiles = await profileStore.CheckForNonExistingProfile(conversation.Participants);
         if(NonExistingProfiles.Count > 0)
         {
@@ -29,7 +29,7 @@ public class ConversationService : IConversationService
         }
         try
         {
-            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessageRequest.message, true);
+            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessage.message, true);
             await conversationStore.CreateConversation(conversation);
         }
         catch
@@ -53,15 +53,15 @@ public class ConversationService : IConversationService
         }
     }
 
-    public async Task<ConvResponseWithToken> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<(List<ConversationResponse> conversations, string token)> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
             await profileStore.GetProfile(username);
             (List<Conversation> conversations, string token) = await conversationStore.EnumerateConversations(
-                username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+                username, limit, lastSeenConversationTime, continuationToken);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            return new ConvResponseWithToken(convResponses, token);
+            return (convResponses, token);
         }
         catch
         {

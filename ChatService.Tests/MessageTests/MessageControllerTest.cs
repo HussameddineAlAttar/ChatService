@@ -89,7 +89,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
         messageServiceMock.Setup(m => m.EnumerateMessages(conversationId))
             .ReturnsAsync(messagesList);
 
-        var response = await httpClient.GetAsync($"/conversations/{conversationId}/messages");
+        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadAsStringAsync();
         Assert.Equal(messagesList, JsonConvert.DeserializeObject<List<EnumMessageResponse>>(json));
@@ -102,7 +102,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
         messageServiceMock.Setup(m => m.EnumerateMessages(conversationId))
              .ThrowsAsync(new ConversationNotFoundException());
 
-        var response = await httpClient.GetAsync($"/conversations/{conversationId}/messages");
+        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         messageServiceMock.Verify(mock => mock.EnumerateMessages(conversationId), Times.Once());
     }

@@ -28,21 +28,21 @@ public static class ProfileStoreExtension
         return missingProfileUsernames;
     }
 
-    public static async Task<List<ConversationResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string username, List<Conversation> conversations)
+    public static async Task<List<ConversationResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string sender, List<Conversation> conversations)
     {
         List<ConversationResponse> response = new();
-        for (int i = 0; i < conversations.Count; ++i)
+        foreach (var conversation in conversations)
         {
-            List<Profile> profiles = new();
-            for (int j = 0; j < conversations[i].Participants.Count; ++j)
+            Profile Recipient;
+            if (conversation.Participants[0] != sender)
             {
-                if (conversations[i].Participants[j] == username)
-                {
-                    continue;
-                }
-                profiles.Add(await store.GetProfile(conversations[i].Participants[j]));
+                Recipient = await store.GetProfile(conversation.Participants[0]);
             }
-            response.Add(new ConversationResponse(conversations[i].Id, conversations[i].ModifiedTime, profiles));
+            else
+            {
+                Recipient = await store.GetProfile(conversation.Participants[1]);
+            }
+            response.Add(new ConversationResponse(conversation.Id, conversation.ModifiedTime, Recipient));
         }
         return response;
     }

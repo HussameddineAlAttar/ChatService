@@ -1,12 +1,17 @@
-﻿namespace ChatService.DTO;
+﻿using System.Net;
 
-public class MessageTokenResponse
+namespace ChatService.DTO;
+
+public record MessageTokenResponse
 {
-    public MessageTokenResponse(List<EnumMessageResponse> Messages, string token)
+    public MessageTokenResponse(List<EnumMessageResponse> Messages, string conversationId,
+        int? limit, long? lastSeenMessageTime, string? continuationToken)
     {
         this.Messages = Messages;
-        continuationToken = token;
+        encodedToken = WebUtility.UrlEncode(continuationToken);
+        NextUri = $"/api/conversations/{conversationId}/messages?limit={limit}&lastSeenMessageTime={lastSeenMessageTime}&continuationToken={encodedToken}";
     }
     public List<EnumMessageResponse> Messages { get; }
-    public string continuationToken { get; }
+    public string? encodedToken;
+    public string NextUri { get; set; }
 }

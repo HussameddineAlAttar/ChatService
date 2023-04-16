@@ -1,6 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Runtime.InteropServices;
-
 namespace ChatService.DTO;
 
 public record Profile

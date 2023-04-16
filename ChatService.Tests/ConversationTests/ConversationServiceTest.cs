@@ -38,7 +38,7 @@ public class ConversationServiceTest
         sendMessageRequest = new(username, Guid.NewGuid().ToString());
         message = sendMessageRequest.message;
         conversation = new Conversation(participants);
-        convoRequest = new CreateConvoRequest(conversation, sendMessageRequest);
+        convoRequest = new CreateConvoRequest(participants, sendMessageRequest);
         testProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
     }
 
@@ -49,7 +49,7 @@ public class ConversationServiceTest
         await conversationService.CreateConversation(convoRequest);
 
         messageServiceMock.Verify(x => x.SendMessage(conversation.Id, message, true), Times.Once);
-        conversationStoreMock.Verify(x => x.CreateConversation(convoRequest.Conversation), Times.Once);
+        conversationStoreMock.Verify(x => x.CreateConversation(new Conversation(convoRequest.Participants)), Times.Once);
     }
 
     [Fact]
@@ -67,10 +67,10 @@ public class ConversationServiceTest
     public async Task EnumerateConversations()
     {
         var conversationList = new List<Conversation>{conversation};
-        Profile recepient = new("Bar", "BarFirst", "BarLast", Guid.NewGuid().ToString());
+        Profile Recipient = new("Bar", "BarFirst", "BarLast", Guid.NewGuid().ToString());
         var conversationResponseList = new List<ConversationResponse>
         {
-            new ConversationResponse(conversation.Id, conversation.ModifiedTime, new List<Profile>{recepient})
+            new ConversationResponse(conversation.Id, conversation.ModifiedTime, Recipient)
         };
 
         profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(testProfile);
@@ -82,7 +82,7 @@ public class ConversationServiceTest
         {
             Assert.Equal(conversationResponseList[i].Id, response[i].Id);
             Assert.Equal(conversationResponseList[i].LastModifiedUnixTime, response[i].LastModifiedUnixTime);
-            Assert.Equal(conversationResponseList[i].Recepients.Count, response[i].Recepients.Count);
+            Assert.Equal(conversationResponseList[i].Recipient, response[i].Recipient);
         }
         conversationStoreMock.Verify(x => x.EnumerateConversations(username), Times.Once);
     }

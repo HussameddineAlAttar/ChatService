@@ -4,13 +4,13 @@ namespace ChatService.DTO;
 
 public record ConversationResponse
 {
-    public ConversationResponse(string id, long time, List<Profile> profiles)
+    public ConversationResponse(string id, long time, Profile Recipient)
     {
         Id = id;
         LastModifiedUnixTime = time;
-        Recepients = profiles;
+        this.Recipient = Recipient;
     }
     public string Id { get; }
     public long LastModifiedUnixTime { get; }
-    public List<Profile> Recepients { get; }
+    public Profile Recipient { get; }
 }

@@ -9,6 +9,7 @@ using System.Text;
 using System;
 using ChatService.Extensions;
 using Microsoft.VisualBasic;
+using Microsoft.Azure.Storage;
 
 namespace ChatService.Storage.Cosmos;
 
@@ -106,9 +107,9 @@ public class CosmosConversationStore : IConversationStore
         var queryOptions = new QueryRequestOptions
         {
             MaxItemCount = limit,
-            ConsistencyLevel = ConsistencyLevel.Session
+            ConsistencyLevel = ConsistencyLevel.Session,
         };
-        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions: queryOptions, continuationToken: continuationToken);
+        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions: queryOptions, continuationToken: WebUtility.UrlDecode(continuationToken));
         var response = await iterator.ReadNextAsync();
 
         List<Conversation> conversations = new();

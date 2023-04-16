@@ -3,6 +3,7 @@ using ChatService.Exceptions;
 using ChatService.Services;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace ChatService.Controllers;
 
@@ -22,8 +23,8 @@ public class ConversationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CreateConvoResponse>> CreateConversation(CreateConvoRequest request)
     {
-        var conversation = request.Conversation;
-        var count = conversation.Participants.Count;
+        var conversation = new Conversation(request.Participants);
+        var count = request.Participants.Count;
         if (count < 2)
         {
             return BadRequest($"Not enough participants to create conversation: {2 - count} more needed.");
@@ -51,7 +52,7 @@ public class ConversationController : ControllerBase
             }
             if(e is NotPartOfConversationException)
             {
-                return BadRequest($"User {request.FirstMessageRequest.SenderUsername} is not part the conversation.");
+                return BadRequest($"User {request.FirstMessage.SenderUsername} is not part the conversation.");
             }
             throw;
         }
@@ -84,8 +85,9 @@ public class ConversationController : ControllerBase
     {
         try
         {
-            var responseWithToken = await conversationService.GetConversations(username, limit, lastSeenConversationTime, continuationToken);
-            return Ok(responseWithToken);
+            (var conversationResponses, var token) = await conversationService.GetConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            ConvResponseWithToken responseWithUri = new(conversationResponses, username, limit, lastSeenConversationTime, token);
+            return Ok(responseWithUri);
         }
         catch (Exception e)
         {

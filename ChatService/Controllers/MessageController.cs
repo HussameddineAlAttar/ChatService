@@ -19,13 +19,14 @@ public class MessageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<long>> SendMessage(string conversationId, SendMessageRequest request)
+    public async Task<ActionResult<SendMessageResponse>> SendMessage(string conversationId, SendMessageRequest request)
     {
         Message message = request.message;
         try
         {
             var time = await messageService.SendMessage(conversationId, message);
-            return CreatedAtAction(nameof(SendMessage), new { CreatedUnixTime = time}, time);
+            var response = new SendMessageResponse(time);
+            return CreatedAtAction(nameof(SendMessage), response);
         }
         catch (Exception e)
         {
@@ -72,7 +73,7 @@ public class MessageController : ControllerBase
             var messageResponses = messages.Select(message =>
             new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
                 .ToList();
-            var messageTokenResponse = new MessageTokenResponse(messageResponses, token);
+            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
             return Ok(messageTokenResponse);
         }
         catch (Exception e)

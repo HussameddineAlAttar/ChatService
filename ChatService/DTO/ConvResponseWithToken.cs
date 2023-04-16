@@ -1,12 +1,17 @@
-﻿namespace ChatService.DTO;
+﻿using System.Net;
+
+namespace ChatService.DTO;
 
 public record ConvResponseWithToken
 {
-    public ConvResponseWithToken(List<ConversationResponse> responses, string token)
+    public ConvResponseWithToken(List<ConversationResponse> Conversations,
+        string username, int? limit, long? lastSeenConversationTime, string? continuationToken)
     {
-        this.responses = responses;
-        continuationToken = token;
+        this.Conversations = Conversations;
+        encodedToken = WebUtility.UrlEncode(continuationToken);
+        NextUri = $"/api/conversations?username={username}&limit={limit}&lastSeenConversationTime={lastSeenConversationTime}&continuationToken={encodedToken}";
     }
-    public List<ConversationResponse> responses { get; }
-    public string continuationToken { get; }
+    public List<ConversationResponse> Conversations { get; }
+    public string? encodedToken;
+    public string NextUri { get; set; }
 }

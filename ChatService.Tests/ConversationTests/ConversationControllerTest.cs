@@ -48,7 +48,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         sendMessageRequest = new(username, Guid.NewGuid().ToString());
         message = sendMessageRequest.message;
         conversation = new Conversation(participants);
-        convoRequest = new CreateConvoRequest(conversation, sendMessageRequest);
+        convoRequest = new CreateConvoRequest(participants, sendMessageRequest);
     }
 
     [Fact]
@@ -88,7 +88,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     {
         var participants = new List<string> { "user1", "user2", "user3" };
         var conversation = new Conversation(participants);
-        var request = new CreateConvoRequest(conversation, sendMessageRequest);
+        var request = new CreateConvoRequest(participants, sendMessageRequest);
         var response = await controller.CreateConversation(request);
 
         Assert.IsType<BadRequestObjectResult>(response.Result);
@@ -99,7 +99,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     public async Task CreateConversation_NotEnoughParticipants()
     {
         var participants = new List<string> { "user1" };
-        var request = new CreateConvoRequest(new Conversation(participants), sendMessageRequest);
+        var request = new CreateConvoRequest(participants, sendMessageRequest);
         var response = await controller.CreateConversation(request);
 
         Assert.IsType<BadRequestObjectResult>(response.Result);
@@ -111,7 +111,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         conversationServiceMock.Setup(m => m.EnumerateConversations(username))
             .ReturnsAsync(new List<ConversationResponse>());
 
-        var response = await httpClient.GetAsync($"conversations/{username}");
+        var response = await httpClient.GetAsync($"/api/conversations/{username}");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
@@ -121,7 +121,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         conversationServiceMock.Setup(m => m.EnumerateConversations(username))
             .ThrowsAsync(new ProfileNotFoundException());
 
-        var response = await httpClient.GetAsync($"conversations/{username}");
+        var response = await httpClient.GetAsync($"/api/conversations/{username}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -131,7 +131,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         conversationServiceMock.Setup(m => m.EnumerateConversations(username))
             .ThrowsAsync(new ConversationNotFoundException());
 
-        var response = await httpClient.GetAsync($"conversations/{username}");
+        var response = await httpClient.GetAsync($"/api/conversations/{username}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }
