@@ -58,7 +58,7 @@ public class CosmosMessageStore : IMessagesStore
     public async Task<(List<Message> messages, string continuationToken)> EnumerateMessages(string conversationId, int limit, long? lastSeenMessageTime, string continuationToken)
     {
         string queryString = "SELECT * FROM Messages m WHERE m.partitionKey = @partitionKey" +
-                        " AND m.createdTime >= @lastSeenMessageTime" +
+                        " AND m.createdTime > @lastSeenMessageTime" +
                         " ORDER BY m.createdTime DESC";
 
         var query = new QueryDefinition(queryString)

@@ -72,7 +72,7 @@ public class CosmosConversationStore : IConversationStore
                 string username, int limit, long? lastSeenConversationTime, string continuationToken)
     {
         string queryString = "SELECT * FROM Conversations c WHERE c.partitionKey = @partitionKey" +
-                                " AND c.lastModifiedTime >= @lastSeenConversationTime" +
+                                " AND c.lastModifiedTime > @lastSeenConversationTime" +
                                 " ORDER BY c.lastModifiedTime DESC";
 
         var query = new QueryDefinition(queryString)

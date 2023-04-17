@@ -46,7 +46,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 
         username = "Foo";
         participants = new List<string> { "Foo", "Bar" };
-        sendMessageRequest = new(username, Guid.NewGuid().ToString());
+        sendMessageRequest = new(Guid.NewGuid().ToString(),username, Guid.NewGuid().ToString());
         message = sendMessageRequest.message;
         conversation = new Conversation(participants);
         convoRequest = new CreateConvoRequest(participants, sendMessageRequest);
