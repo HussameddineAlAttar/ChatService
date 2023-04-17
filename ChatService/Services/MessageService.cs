@@ -16,24 +16,16 @@ public class MessageService : IMessageService
         conversationStore = _conversationStore;
     }
 
-    public async Task<List<EnumMessageResponse>> EnumerateMessages(string conversationId)
+    public async Task<MessageTokenResponse> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
         try
         {
-            var messages = await messagesStore.EnumerateMessages(conversationId);
-            return messages.Select(m => new EnumMessageResponse(m.Text, m.SenderUsername, m.Time)).ToList();
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
-    public async Task<(List<Message> messages, string token)> GetMessages(string conversationId, int limit = 10, long? lastSeenMessageTime = null, string? continuationToken = null)
-    {
-        try
-        {
-            return await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            var messageResponses = messages.Select(message =>
+            new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
+                .ToList();
+            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
+            return messageTokenResponse;
         }
         catch
         {

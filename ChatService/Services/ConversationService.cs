@@ -38,22 +38,7 @@ public class ConversationService : IConversationService
         }
     }
 
-    public async Task<List<ConversationResponse>> EnumerateConversations(string username)
-    {
-        try
-        {
-            await profileStore.GetProfile(username);
-            var conversations = await conversationStore.EnumerateConversations(username);
-            var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            return convResponses;
-        }
-        catch
-        {
-            throw;
-        }
-    }
-
-    public async Task<(List<ConversationResponse> conversations, string token)> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<(List<ConversationResponse> conversations, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {

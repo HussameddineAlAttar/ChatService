@@ -58,34 +58,12 @@ public class ConversationController : ControllerBase
         }
     }
 
-    [HttpGet("{username}")]
-    public async Task<ActionResult<List<ConversationResponse>>> EnumerateConversations(string username)
-    {
-        try
-        {
-            var ConvResponse = await conversationService.EnumerateConversations(username);
-            return Ok(ConvResponse);
-        }
-        catch(Exception e)
-        {
-            if(e is ConversationNotFoundException)
-            {
-                return NotFound($"Conversations for user {username} not found");
-            }
-            else if(e is ProfileNotFoundException)
-            {
-                return NotFound($"Profile with username {username} not found");
-            }
-            throw;
-        }
-    }
-
     [HttpGet]
-    public async Task<ActionResult<ConvResponseWithToken>> GetConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<ActionResult<ConvResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
-            (var conversationResponses, var token) = await conversationService.GetConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            (var conversationResponses, var token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
             ConvResponseWithToken responseWithUri = new(conversationResponses, username, limit, lastSeenConversationTime, token);
             return Ok(responseWithUri);
         }
@@ -102,5 +80,4 @@ public class ConversationController : ControllerBase
             throw;
         }
     }
-
 }

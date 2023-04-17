@@ -68,31 +68,6 @@ public class CosmosConversationStore : IConversationStore
         }
     }
 
-    public async Task<List<Conversation>> EnumerateConversations(string username)
-    {
-        var query = new QueryDefinition("SELECT * FROM Conversations c WHERE c.partitionKey = @partitionKey").WithParameter("@partitionKey", username);
-        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query);
-        List<Conversation> conversations = new();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-
-            foreach (var entity in response)
-            {
-                conversations.Add(ToConversation(entity));
-            }
-        }
-
-        if (conversations.Count == 0)
-        {
-            throw new ConversationNotFoundException($"Conversation for user {username} not found.");
-        }
-
-        conversations = conversations.OrderByDescending(x => x.ModifiedTime).ToList();
-        return conversations;
-    }
-
     public async Task<(List<Conversation> conversations, string continuationToken)> EnumerateConversations(
                 string username, int limit, long? lastSeenConversationTime, string continuationToken)
     {

@@ -9,7 +9,14 @@ public record MessageTokenResponse
     {
         this.Messages = Messages;
         encodedToken = WebUtility.UrlEncode(continuationToken);
-        NextUri = $"/api/conversations/{conversationId}/messages?limit={limit}&lastSeenMessageTime={lastSeenMessageTime}&continuationToken={encodedToken}";
+        if(continuationToken == null)
+        {
+            NextUri = "";
+        }
+        else
+        {
+            NextUri = $"/api/conversations/{conversationId}/messages?limit={limit}&lastSeenMessageTime={lastSeenMessageTime}&continuationToken={encodedToken}";
+        }
     }
     public List<EnumMessageResponse> Messages { get; }
     public string? encodedToken;
