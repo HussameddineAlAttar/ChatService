@@ -1,29 +1,26 @@
 ﻿using Azure.Storage.Blobs.Models;
 using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Services;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 
 [ApiController]
-[Route("images")]
+[Route("api/images")]
 public class ImageController : ControllerBase
 {
-    private readonly IImageInterface imageInterface;
+    private readonly IImageService imageService;
 
-    public ImageController(IImageInterface _imageInterface)
+    public ImageController(IImageService _imageService)
     {
-        imageInterface = _imageInterface;
+        imageService = _imageService;
     }
 
     [HttpPost]
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
     {
-        var type = request.File.ContentType;
-        if (type != "image/png" && type != "image/jpeg")
-        {
-            return BadRequest("Image file type not supported. Upload PNG or JPEG.");
-        }
-        var imgID = await imageInterface.UploadImage(request);
+        var imgID = await imageService.UploadImage(request);
         var response = new UploadImageResponse(imgID);
         return CreatedAtAction(nameof(UploadImage), response);
     }
@@ -33,14 +30,8 @@ public class ImageController : ControllerBase
     {
         try
         {
-            var image = await imageInterface.DownloadImage(id);
-            byte[] contentBytes;
-            using (var ms = new MemoryStream())
-            {
-                image.Content.CopyTo(ms);
-                contentBytes = ms.ToArray();
-            }
-            return File(contentBytes, image.ContentType);
+            var imageBytes = await imageService.DownloadImage(id);
+            return new FileContentResult(imageBytes, "image/png");
         }
         catch(Exception e)
         { 

@@ -1,7 +1,7 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Extensions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Services;
 
@@ -16,18 +16,16 @@ public class MessageService : IMessageService
         conversationStore = _conversationStore;
     }
 
-    public async Task<List<EnumMessageResponse>> EnumerateMessages(string conversationId)
+    public async Task<MessageTokenResponse> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
-        List<EnumMessageResponse> messageResponses = new();
         try
         {
-            var messages = await messagesStore.EnumerateMessages(conversationId);
-            for(int i = 0; i < messages.Count; i++)
-            {
-                EnumMessageResponse response = new(messages[i].Text, messages[i].SenderUsername, messages[i].Time);
-                messageResponses.Add(response);
-            }
-            return messageResponses;
+            (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            var messageResponses = messages.Select(message =>
+            new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
+                .ToList();
+            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
+            return messageTokenResponse;
         }
         catch
         {
@@ -35,9 +33,10 @@ public class MessageService : IMessageService
         }
     }
 
+
     public async Task<long> SendMessage(string conversationId, Message message, bool FirstTime = false)
     {
-        List<string> usernames = conversationId.Split("_").ToList();
+        List<string> usernames = conversationId.SplitToUsernames();
         if (!usernames.Contains(message.SenderUsername))
         {
             throw new NotPartOfConversationException();
@@ -50,11 +49,7 @@ public class MessageService : IMessageService
         try
         {
             await messagesStore.SendMessage(conversationId, message);
-            
-            for (int i = 0; i < usernames.Count; i++)
-            {
-                await conversationStore.ModifyTime(usernames[i], conversationId, message.Time);
-            }
+            await conversationStore.UpdateLastModifiedTime(conversationId, message.Time);
             return message.Time;
         }
         catch (Exception e)

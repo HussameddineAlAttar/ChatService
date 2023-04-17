@@ -1,13 +1,14 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("conversations")]
+[Route("api/conversations")]
 public class ConversationController : ControllerBase
 {
     private readonly IMessageService messageService;
@@ -22,8 +23,8 @@ public class ConversationController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CreateConvoResponse>> CreateConversation(CreateConvoRequest request)
     {
-        var conversation = request.Conversation;
-        var count = conversation.Participants.Count;
+        var conversation = new Conversation(request.Participants);
+        var count = request.Participants.Count;
         if (count < 2)
         {
             return BadRequest($"Not enough participants to create conversation: {2 - count} more needed.");
@@ -51,27 +52,28 @@ public class ConversationController : ControllerBase
             }
             if(e is NotPartOfConversationException)
             {
-                return BadRequest($"User {request.FirstMessageRequest.SenderUsername} is not part the conversation.");
+                return BadRequest($"User {request.FirstMessage.SenderUsername} is not part the conversation.");
             }
             throw;
         }
     }
 
-    [HttpGet("{username}")]
-    public async Task<ActionResult<List<ConversationResponse>>> EnumerateConversations(string username)
+    [HttpGet]
+    public async Task<ActionResult<ConvResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
-            var ConvResponse = await conversationService.EnumerateConversations(username);
-            return Ok(ConvResponse);
+            (var conversationResponses, var token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            ConvResponseWithToken responseWithUri = new(conversationResponses, username, limit, lastSeenConversationTime, token);
+            return Ok(responseWithUri);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
-            if(e is ConversationNotFoundException)
+            if (e is ConversationNotFoundException)
             {
                 return NotFound($"Conversations for user {username} not found");
             }
-            else if(e is ProfileNotFoundException)
+            else if (e is ProfileNotFoundException)
             {
                 return NotFound($"Profile with username {username} not found");
             }

@@ -1,13 +1,14 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Linq;
 
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("conversations/{conversationId}/messages")]
+[Route("api/conversations/{conversationId}/messages")]
 public class MessageController : ControllerBase
 {
     private readonly IMessageService messageService;
@@ -18,13 +19,14 @@ public class MessageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<long>> SendMessage(string conversationId, SendMessageRequest request)
+    public async Task<ActionResult<SendMessageResponse>> SendMessage(string conversationId, SendMessageRequest request)
     {
         Message message = request.message;
         try
         {
             var time = await messageService.SendMessage(conversationId, message);
-            return CreatedAtAction(nameof(SendMessage), new { CreatedUnixTime = time}, time);
+            var response = new SendMessageResponse(time);
+            return CreatedAtAction(nameof(SendMessage), response);
         }
         catch (Exception e)
         {
@@ -45,18 +47,22 @@ public class MessageController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<EnumMessageResponse>>> EnumurateMessages(string conversationId)
+    public async Task<ActionResult<MessageTokenResponse>> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
         try
         {
-            var messages = await messageService.EnumerateMessages(conversationId);
-            return Ok(messages);
+            var messageTokenResponse = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            return Ok(messageTokenResponse);
         }
         catch (Exception e)
         {
             if (e is ConversationNotFoundException)
             {
-                return NotFound($"Conversation with id {conversationId} not found");
+                return NotFound($"Conversation with id {conversationId} not found.");
+            }
+            else if (e is MessageNotFoundException)
+            {
+                return NotFound($"Messages for conversation {conversationId} not found.");
             }
             throw;
         }

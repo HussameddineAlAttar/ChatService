@@ -4,15 +4,15 @@ namespace ChatService.DTO;
 
 public record SendMessageRequest
 {
-    public SendMessageRequest([Required] string SenderUsername, [Required] string Text)
+    public SendMessageRequest([Required] string id, [Required] string SenderUsername, [Required] string Text)
     {
         this.SenderUsername = SenderUsername;
         this.Text = Text;
-        Id = Guid.NewGuid().ToString();
+        Id = id;
         Time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
         message = new Message(SenderUsername, Text, Id, Time);
     }
-    public string Id;
+    public string Id { get; init; }
     public string SenderUsername { get; init; }
     public string Text { get; init; }
     public long Time;

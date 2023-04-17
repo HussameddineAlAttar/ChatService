@@ -1,3 +1,3 @@
 ﻿namespace ChatService.DTO;
 
-public record CreateConvoRequest(Conversation Conversation, SendMessageRequest FirstMessageRequest);
+public record CreateConvoRequest(List<string> Participants, SendMessageRequest FirstMessage);

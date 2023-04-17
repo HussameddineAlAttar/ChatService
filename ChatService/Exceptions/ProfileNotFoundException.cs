@@ -9,8 +9,11 @@ public class ProfileNotFoundException : Exception
         Usernames = usernames;
     }
 
+    public ProfileNotFoundException(string message) : base(message)
+    {
+    }
+
     public ProfileNotFoundException() : base()
     {
-        Usernames = null;
     }
 }

@@ -1,7 +1,8 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Extensions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
+using System.Net;
 
 namespace ChatService.Services;
 
@@ -9,9 +10,9 @@ public class ConversationService : IConversationService
 {
     private readonly IConversationStore conversationStore;
     private readonly IMessageService messageService;
-    private readonly IProfileInterface profileStore;
+    private readonly IProfileStore profileStore;
 
-    public ConversationService(IConversationStore _conversationStore, IProfileInterface _profileStore, IMessageService _messageService)
+    public ConversationService(IConversationStore _conversationStore, IProfileStore _profileStore, IMessageService _messageService)
     {
         conversationStore = _conversationStore;
         profileStore = _profileStore;
@@ -20,19 +21,16 @@ public class ConversationService : IConversationService
 
     public async Task CreateConversation(CreateConvoRequest convoRequest)
     {
-        var conversation = convoRequest.Conversation;
-        var NonExistingProfiles = await profileStore.CheckFor_NonExistingProfile(conversation.Participants);
+        var conversation = new Conversation(convoRequest.Participants);
+        var NonExistingProfiles = await profileStore.CheckForNonExistingProfile(conversation.Participants);
         if(NonExistingProfiles.Count > 0)
         {
             throw new ProfileNotFoundException(NonExistingProfiles);
         }
         try
         {
-            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessageRequest.message, true);
-            for(int i = 0; i < conversation.Participants.Count; i++)
-            {
-                await conversationStore.CreateConversation(conversation, conversation.Participants[i]);
-            }
+            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessage.message, true);
+            await conversationStore.CreateConversation(conversation);
         }
         catch
         {
@@ -40,14 +38,15 @@ public class ConversationService : IConversationService
         }
     }
 
-    public async Task<List<ConversationResponse>> EnumerateConversations(string username)
+    public async Task<(List<ConversationResponse> conversations, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
             await profileStore.GetProfile(username);
-            var conversations = await conversationStore.EnumerateConversations(username);
+            (List<Conversation> conversations, string token) = await conversationStore.EnumerateConversations(
+                username, limit, lastSeenConversationTime, continuationToken);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            return convResponses;
+            return (convResponses, token);
         }
         catch
         {
@@ -55,16 +54,13 @@ public class ConversationService : IConversationService
         }
     }
 
-    public async Task<long> ModifyTime(string conversationId, long time)
+    public async Task<long> UpdateLastModifiedTime(string conversationId, long unixTime)
     {
-        List<string> usernames = conversationId.Split("_").ToList();
+        List<string> usernames = conversationId.SplitToUsernames();
         try
         {
-            for (int i = 0; i < usernames.Count; i++)
-            {
-                await conversationStore.ModifyTime(usernames[i], conversationId, time);
-            }
-            return time;
+            await conversationStore.UpdateLastModifiedTime(conversationId, unixTime);
+            return unixTime;
         }
         catch
         {

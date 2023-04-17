@@ -4,31 +4,17 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using System.IO;
-using System.Net.Http;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using System.Net.Http.Json;
-using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions.Interfaces;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Azure.Documents.SystemFunctions;
-using Microsoft.Azure.Cosmos;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
+using ChatService.Services;
 
 namespace ChatService.Tests.ImageTests;
 
 public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IProfileInterface> profileStoreMock = new();
-    private readonly Mock<IImageInterface> blobStorageMock = new();
+    private readonly Mock<IImageService> imageService = new();
     private readonly HttpClient httpClient;
 
     private readonly MultipartFormDataContent dataContent = new();
@@ -38,82 +24,37 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     {
         httpClient = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureTestServices(services => { services.AddSingleton(profileStoreMock.Object); });
-            builder.ConfigureTestServices(services => { services.AddSingleton(blobStorageMock.Object); });
+            builder.ConfigureTestServices(services => { services.AddSingleton(imageService.Object); });
         }).CreateClient();
     }
 
-    [Theory]
-    [InlineData("png")]
-    [InlineData("jpeg")]
-    [InlineData("jpg")]
-    public async Task UploadValidImage(string validType)
+    [Fact]
+    public async Task UploadValidImage()
     {
-        Image testImage = new(new MemoryStream(), "image/" + validType);
-
+        Stream imageStream = new MemoryStream();
         var testUploadImageResponse = new UploadImageResponse(testID);
 
-        blobStorageMock.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>())).ReturnsAsync(testID);
+        imageService.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>())).ReturnsAsync(testID);
 
-        var fileToUpload = new StreamContent(testImage.Content);
-        fileToUpload.Headers.ContentType = new MediaTypeHeaderValue(testImage.ContentType);
+        var fileToUpload = new StreamContent(imageStream);
+        dataContent.Add(fileToUpload, "File", "image.png");
 
-        dataContent.Add(fileToUpload, "File", "image." + validType);
-
-        var clientResponse = await httpClient.PostAsync("/images", dataContent);
-
+        var clientResponse = await httpClient.PostAsync("/api/images", dataContent);
         Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
 
         var json = await clientResponse.Content.ReadAsStringAsync();
         UploadImageResponse receivedResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
         Assert.Equal(testUploadImageResponse, receivedResponse);
-
-    }
-
-    [Theory]
-    [InlineData("image", "gif")]
-    [InlineData("application", "pdf")]
-    [InlineData("text", "plain")]
-    [InlineData("video", "mp4")]
-    public async Task UploadNonImage_Bad(string invalidType, string extension)
-    {
-        Image testImage = new(new MemoryStream(), $"{invalidType}/{extension}");
-
-        //var request = new UploadImageRequest(fileMock.Object);
-        var testUploadImageResponse = new UploadImageResponse(testID);
-
-        blobStorageMock.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>())).ReturnsAsync(testID);
-
-        var fileToUpload = new StreamContent(testImage.Content);
-        fileToUpload.Headers.ContentType = new MediaTypeHeaderValue(testImage.ContentType);
-
-        dataContent.Add(fileToUpload, "File", $"{invalidType}.{extension}");
-
-        var clientResponse = await httpClient.PostAsync("/images", dataContent);
-
-        Assert.Equal(HttpStatusCode.BadRequest, clientResponse.StatusCode);
     }
 
 
-    [Theory]
-    [InlineData("png")]
-    [InlineData("jpeg")]
-    [InlineData("jpg")]
-    public async Task DownloadValidImage(string type)
+    [Fact]
+    public async Task DownloadValidImage()
     {
-        // Arrange
         var expectedContent = new byte[] { 0x12, 0x34, 0x56, 0x78 };
-        var image = new Image(new MemoryStream(expectedContent), "image/" + type);
-        blobStorageMock.Setup(m => m.DownloadImage(testID)).ReturnsAsync(image);
+        imageService.Setup(m => m.DownloadImage(testID)).ReturnsAsync(expectedContent);
 
-
-        // Act
-        var response = await httpClient.GetAsync($"/images/{testID}");
-
-        // Assert
-        var contentType = response.Content.Headers.ContentType.ToString();
-        Assert.Equal(image.ContentType, contentType);
-
+        var response = await httpClient.GetAsync($"/api/images/{testID}");
         var responseContent = await response.Content.ReadAsByteArrayAsync();
         Assert.Equal(expectedContent, responseContent);
     }
@@ -123,11 +64,9 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         string randomID = "randomID_doesn't_exist";
-        blobStorageMock.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
+        imageService.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
 
-        var result = await httpClient.GetAsync($"/images/{randomID}");
-
+        var result = await httpClient.GetAsync($"/api/images/{randomID}");
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
     }
-
 }

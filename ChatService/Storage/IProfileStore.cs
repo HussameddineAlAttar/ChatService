@@ -1,9 +1,9 @@
 ﻿using ChatService.DTO;
 using Microsoft.AspNetCore.Mvc;
 
-namespace ChatService.Storage.Interfaces;
+namespace ChatService.Storage;
 
-public interface IProfileInterface
+public interface IProfileStore
 {
     Task CreateProfile(Profile profile);
     Task<Profile> GetProfile(string username);

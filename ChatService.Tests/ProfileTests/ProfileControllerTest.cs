@@ -9,18 +9,16 @@ using System.Net;
 using Newtonsoft.Json;
 using System.Text;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 
 namespace ChatService.Tests.ProfileTests;
 
 public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly Mock<IProfileInterface> profileStoreMock = new();
-    private readonly Mock<IImageInterface> blobStorageMock = new();
+    private readonly Mock<IProfileStore> profileStoreMock = new();
     private readonly HttpClient httpClient;
 
     private readonly Profile testProfile;
-    private readonly Image testImage;
 
 
     public ProfileControllerTest(WebApplicationFactory<Program> factory)
@@ -28,9 +26,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
         httpClient = factory.WithWebHostBuilder(builder =>
         {
             builder.ConfigureTestServices(services => { services.AddSingleton(profileStoreMock.Object); });
-            builder.ConfigureTestServices(services => { services.AddSingleton(blobStorageMock.Object); });
         }).CreateClient();
-        testImage = new Image(new MemoryStream(), "randomType");
         testProfile = new Profile("Test_FooBar", "FooTest", "BarTest", Guid.NewGuid().ToString());
     }
 
@@ -39,7 +35,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     {
         profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ReturnsAsync(testProfile);
 
-        var response = await httpClient.GetAsync($"/profile/{testProfile.Username}");
+        var response = await httpClient.GetAsync($"/api/profile/{testProfile.Username}");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var json = await response.Content.ReadAsStringAsync();
@@ -51,19 +47,17 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     {
         profileStoreMock.Setup(m => m.GetProfile(testProfile.Username)).ThrowsAsync(new ProfileNotFoundException());
 
-        var response = await httpClient.GetAsync($"/profile/{testProfile.Username}");
+        var response = await httpClient.GetAsync($"/api/profile/{testProfile.Username}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
     public async Task AddProfile()
     {
-        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ReturnsAsync(testImage);
-        var response = await httpClient.PostAsync("/profile",
+        var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal($"http://localhost/profile/{testProfile.Username}", response.Headers.GetValues("Location").First());
 
         var json = await response.Content.ReadAsStringAsync();
         var uploadedProfile = JsonConvert.DeserializeObject<Profile>(json);
@@ -75,7 +69,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     {
         profileStoreMock.Setup(m => m.CreateProfile(testProfile)).ThrowsAsync(new ProfileConflictException());
 
-        var response = await httpClient.PostAsync("/profile",
+        var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         profileStoreMock.Verify(mock => mock.CreateProfile(testProfile), Times.Once);
@@ -94,22 +88,11 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     public async Task AddProfile_InvalidArgs(string username, string firstname, string lastname)
     {
         Profile profile = new(username, firstname, lastname, Guid.NewGuid().ToString());
-        var response = await httpClient.PostAsync("/profile",
+        var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(profile), Encoding.Default, "application/json"));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         profileStoreMock.Verify(mock => mock.CreateProfile(profile), Times.Never);
 
-    }
-    [Fact]
-    public async Task AddProfile_NoImageFound()
-    {
-        blobStorageMock.Setup(m => m.DownloadImage(testProfile.ProfilePictureId)).ThrowsAsync(new ImageNotFoundException());
-
-        var response = await httpClient.PostAsync("/profile",
-            new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        profileStoreMock.Verify(m => m.CreateProfile(testProfile), Times.Never);
     }
 }

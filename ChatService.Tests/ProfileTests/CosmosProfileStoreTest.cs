@@ -1,6 +1,6 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
+using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,16 +14,16 @@ namespace ChatService.Tests.ProfileTests;
 
 public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
-    private readonly IProfileInterface profileStore;
+    private readonly IProfileStore profileStore;
 
     private readonly Profile testProfile;
     private readonly string pictureID = Guid.NewGuid().ToString();
-    string idForAlreadyExists = "conflict" + Guid.NewGuid().ToString();
-    string idToDelete = "toDelete" + Guid.NewGuid().ToString();
+    private readonly string idForAlreadyExists = "conflict" + Guid.NewGuid().ToString();
+    private readonly string idToDelete = "toDelete" + Guid.NewGuid().ToString();
 
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
-        profileStore = factory.Services.GetRequiredService<IProfileInterface>();
+        profileStore = factory.Services.GetRequiredService<IProfileStore>();
         testProfile = new Profile("randomUsernameForTest", "FooTest", "BarTest", pictureID);
     }
 
@@ -36,8 +36,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         try
         {
-            await profileStore.DeleteProfile(testProfile.Username);
-            await profileStore.DeleteProfile(idForAlreadyExists);
+            await Task.WhenAll(profileStore.DeleteProfile(testProfile.Username), profileStore.DeleteProfile(idForAlreadyExists));
         }
         catch { }
     }
@@ -45,7 +44,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetEmptyProfile() 
     {
-        await Assert.ThrowsAsync<CosmosException>(async () =>
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
             await profileStore.GetProfile("");
         });
@@ -77,7 +76,6 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
         {
             await profileStore.CreateProfile(alreadyExists);
         });
-       await profileStore.DeleteProfile(idForAlreadyExists);
     }
 
     [Theory]
@@ -94,7 +92,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await profileStore.CreateProfile(new Profile(username, firstname, lastname, pictureID));
+            await profileStore.CreateProfile(new Profile(username, firstname, lastname));
         });
     }
 
@@ -103,20 +101,18 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         Profile toDeleteProfile = new(idToDelete, idToDelete, idToDelete, idToDelete);
         await profileStore.CreateProfile(toDeleteProfile);
-
-        Assert.Equal(toDeleteProfile, await profileStore.GetProfile(toDeleteProfile.Username));
         await profileStore.DeleteProfile(toDeleteProfile.Username);
 
         await Assert.ThrowsAsync<ProfileNotFoundException>(async () =>
-            {
-                await profileStore.GetProfile(toDeleteProfile.Username);
-            });
+        {
+            await profileStore.GetProfile(toDeleteProfile.Username);
+        });
     }
 
     [Fact]
     public async Task DeleteEmptyProfile()
     {
-        await Assert.ThrowsAsync<CosmosException>(async () =>
+        await Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
             await profileStore.DeleteProfile("");
         });

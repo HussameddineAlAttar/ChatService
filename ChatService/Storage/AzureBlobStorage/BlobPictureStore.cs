@@ -7,10 +7,9 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure;
 using ChatService.Exceptions;
-using ChatService.Storage.Interfaces;
 
-namespace ChatService.Storage.Implementations;
-public class BlobPictureStore : IImageInterface
+namespace ChatService.Storage.AzureBlobStorage;
+public class BlobPictureStore : IImageStore
 {
     private readonly BlobServiceClient _blobServiceClient;
 
@@ -21,32 +20,22 @@ public class BlobPictureStore : IImageInterface
 
     private BlobContainerClient Container => _blobServiceClient.GetBlobContainerClient("profilepictures");
 
-    public async Task<Image?> DownloadImage(string id)
+    public async Task<Stream> DownloadImage(string id)
     {
-        if (string.IsNullOrEmpty(id) || string.IsNullOrWhiteSpace(id))
+        if (string.IsNullOrWhiteSpace(id))
         {
             throw new ArgumentNullException("Id cannot be null or empty");
         }
         try
         {
-            string type;
-
             BlobClient blobClient = Container.GetBlobClient(id + ".png");
-            type = "png";
-            if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
+            if (!await blobClient.ExistsAsync())
             {
-                blobClient = Container.GetBlobClient(id + ".jpeg");
-                type = "jpeg";
-                if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
-                {
-                    throw new ImageNotFoundException();
-                }
+                throw new ImageNotFoundException($"Image of id {id} not found.");
             }
-
             BlobDownloadResult content = await blobClient.DownloadContentAsync();
             var stream = content.Content.ToStream();
-            return new Image(stream, "image/" + type);
-
+            return stream;
         }
         catch
         {
@@ -58,39 +47,25 @@ public class BlobPictureStore : IImageInterface
     public async Task<string> UploadImage(UploadImageRequest request)
     {
         string pictureID = Guid.NewGuid().ToString();
-        var file = request.File;
-        string type = Path.GetExtension(file.FileName);
-        if (type == ".jpg")
-        {
-            type = ".jpeg";
-        }
-        var blobName = $"{pictureID}{type}"; //file type to include in Image during download
+        var blobName = $"{pictureID}.png";
         var blobClient = Container.GetBlobClient(blobName);
+        var file = request.File;
         await blobClient.UploadAsync(file.OpenReadStream(), true);
         return pictureID;
-
     }
 
     public async Task DeleteImage(string? id)
     {
         if (string.IsNullOrEmpty(id) || string.IsNullOrWhiteSpace(id))
         {
-            throw new ArgumentNullException();
+            throw new ArgumentNullException("Id cannot be null or empty");
         }
         try
         {
-            string type;
-
             BlobClient blobClient = Container.GetBlobClient(id + ".png");
-            type = "png";
             if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
             {
-                blobClient = Container.GetBlobClient(id + ".jpeg");
-                type = "jpeg";
-                if (!await blobClient.ExistsAsync()) // if {id}.jpeg doesn't exist
-                {
-                    throw new ImageNotFoundException();
-                }
+                throw new ImageNotFoundException($"Image of id {id} not found.");
             }
             await blobClient.DeleteAsync();
             return;
