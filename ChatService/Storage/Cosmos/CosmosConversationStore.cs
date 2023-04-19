@@ -68,7 +68,7 @@ public class CosmosConversationStore : IConversationStore
         }
     }
 
-    public async Task<(List<Conversation> conversations, string continuationToken)> EnumerateConversations(
+    public async Task<(List<Conversation> conversations, string? continuationToken)> EnumerateConversations(
                 string username, int limit, long? lastSeenConversationTime, string continuationToken)
     {
         string queryString = "SELECT * FROM Conversations c WHERE c.partitionKey = @partitionKey" +
@@ -92,11 +92,6 @@ public class CosmosConversationStore : IConversationStore
         foreach (var entity in response)
         {
             conversations.Add(ToConversation(entity));
-        }
-
-        if (conversations.Count == 0)
-        {
-            throw new ConversationNotFoundException($"No more conversations found for user {username}.");
         }
 
         return (conversations, response.ContinuationToken);

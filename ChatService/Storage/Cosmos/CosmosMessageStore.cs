@@ -80,11 +80,6 @@ public class CosmosMessageStore : IMessagesStore
             messages.Add(ToMessage(entity));
         }
 
-        if (messages.Count == 0)
-        {
-            throw new MessageNotFoundException($"No more messages found for conversation {conversationId}.");
-        }
-
         return (messages, response.ContinuationToken);
     }
 
