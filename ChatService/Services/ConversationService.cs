@@ -38,12 +38,12 @@ public class ConversationService : IConversationService
         }
     }
 
-    public async Task<(List<ConversationResponse> conversations, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<(List<ConversationResponse> conversations, string? token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
             await profileStore.GetProfile(username);
-            (List<Conversation> conversations, string token) = await conversationStore.EnumerateConversations(
+            (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(
                 username, limit, lastSeenConversationTime, continuationToken);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
             return (convResponses, token);
