@@ -2,7 +2,6 @@
 using ChatService.Exceptions;
 using ChatService.Extensions;
 using ChatService.Storage;
-using System.Net;
 
 namespace ChatService.Services;
 
@@ -32,13 +31,10 @@ public class ConversationService : IConversationService
             await messageService.SendMessage(conversation.Id, convoRequest.FirstMessage.message, true);
             await conversationStore.CreateConversation(conversation);
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 
-    public async Task<(List<ConversationResponse> conversations, string? token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<ConvoResponseWithToken> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
@@ -46,12 +42,10 @@ public class ConversationService : IConversationService
             (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(
                 username, limit, lastSeenConversationTime, continuationToken);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            return (convResponses, token);
+            ConvoResponseWithToken responseWithUri = new(convResponses, username, limit, lastSeenConversationTime, token);
+            return responseWithUri;
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 
     public async Task<long> UpdateLastModifiedTime(string conversationId, long unixTime)
@@ -62,9 +56,6 @@ public class ConversationService : IConversationService
             await conversationStore.UpdateLastModifiedTime(conversationId, unixTime);
             return unixTime;
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 }

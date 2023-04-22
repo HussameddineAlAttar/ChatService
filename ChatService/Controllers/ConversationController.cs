@@ -59,21 +59,16 @@ public class ConversationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ConvResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<ActionResult<ConvoResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
-            (var conversationResponses, var token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
-            ConvResponseWithToken responseWithUri = new(conversationResponses, username, limit, lastSeenConversationTime, token);
+            var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
             return Ok(responseWithUri);
         }
         catch (Exception e)
         {
-            if (e is ConversationNotFoundException)
-            {
-                return NotFound($"Conversations for user {username} not found");
-            }
-            else if (e is ProfileNotFoundException)
+            if (e is ProfileNotFoundException)
             {
                 return NotFound($"Profile with username {username} not found");
             }

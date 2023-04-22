@@ -2,14 +2,7 @@
 using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace ChatService.Tests.MessageTests;
 
@@ -30,6 +23,11 @@ public class CosmosMessageStoreTest : IClassFixture<WebApplicationFactory<Progra
     private readonly Message message_enum1;
     private readonly Message message_enum2;
 
+    private readonly int defaultLimit = 10;
+    private readonly long defaultLastSeen = 1;
+    private readonly string? nullToken = null;
+    private readonly string defaultToken = "randomToken";
+
     public CosmosMessageStoreTest(WebApplicationFactory<Program> factory)
     {
         messageStore = factory.Services.GetRequiredService<IMessagesStore>();
@@ -44,8 +42,13 @@ public class CosmosMessageStoreTest : IClassFixture<WebApplicationFactory<Progra
         conversationId_enum = Guid.NewGuid().ToString();
         messageId_enum1 = Guid.NewGuid().ToString();
         messageId_enum2 = Guid.NewGuid().ToString();
-        message_enum1 = new Message("User1", "Text1", messageId_enum1, 001);
-        message_enum2 = new Message("User2", "Text2", messageId_enum2, 999);
+        message_enum1 = new Message("User1", "Text1", messageId_enum1, 123);
+        message_enum2 = new Message("User2", "Text2", messageId_enum2, 456);
+    }
+
+    private bool EqualMessageList(List<Message> list1, List<Message> list2)
+    {
+        return list1.SequenceEqual(list2);
     }
 
     public Task InitializeAsync()
@@ -95,20 +98,15 @@ public class CosmosMessageStoreTest : IClassFixture<WebApplicationFactory<Progra
         await messageStore.SendMessage(conversationId_enum, message_enum1);
         await messageStore.SendMessage(conversationId_enum, message_enum2);
 
-        var expectedMessages = await messageStore.EnumerateMessages(conversationId_enum);
-        Assert.Equal(myMessages.Count, expectedMessages.Count);
-        for(int i = 0; i < myMessages.Count; i++)
-        {
-            Assert.Equal(myMessages[i], expectedMessages[i]);
-        }
+        (var actualMessages, var token) = await messageStore.EnumerateMessages(conversationId_enum, defaultLimit, defaultLastSeen, nullToken);
+        Assert.True(EqualMessageList(myMessages, actualMessages));
     }
 
     [Fact]
     public async Task EnumMessages_NotFound()
     {
-        await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
-        {
-            await messageStore.EnumerateMessages(Guid.NewGuid().ToString());
-        });
+        (var actualMessages, var token) = await messageStore.EnumerateMessages(Guid.NewGuid().ToString(), defaultLimit, defaultLastSeen, nullToken);
+        Assert.Empty(actualMessages);
+        Assert.True(string.IsNullOrWhiteSpace(token));
     }
 }

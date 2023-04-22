@@ -1,13 +1,13 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Newtonsoft.Json;
 
 namespace ChatService.DTO;
 
-public record ConversationResponse
+public record EnumConvoResponse
 {
-    public ConversationResponse(string id, long time, Profile Recipient)
+    public EnumConvoResponse(string id, long LastModifiedUnixTime, Profile Recipient)
     {
         Id = id;
-        LastModifiedUnixTime = time;
+        this.LastModifiedUnixTime = LastModifiedUnixTime;
         this.Recipient = Recipient;
     }
     public string Id { get; }

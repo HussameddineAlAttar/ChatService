@@ -60,10 +60,6 @@ public class MessageController : ControllerBase
             {
                 return NotFound($"Conversation with id {conversationId} not found.");
             }
-            else if (e is MessageNotFoundException)
-            {
-                return NotFound($"Messages for conversation {conversationId} not found.");
-            }
             throw;
         }
     }

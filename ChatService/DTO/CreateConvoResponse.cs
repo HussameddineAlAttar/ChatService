@@ -4,10 +4,10 @@ namespace ChatService.DTO;
 
 public record CreateConvoResponse
 {
-    public CreateConvoResponse([Required] string id, long time)
+    public CreateConvoResponse([Required] string id, long CreatedUnixTime)
     {
         Id = id;
-        CreatedUnixTime = time;
+        this.CreatedUnixTime = CreatedUnixTime;
     }
     public long CreatedUnixTime { get; }
     public string Id { get; }

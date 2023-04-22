@@ -6,7 +6,6 @@ namespace ChatService.Services;
 
 public class ImageService : IImageService
 {
-
     private readonly IImageStore imageStore;
 
     public ImageService(IImageStore _imageStore)
@@ -16,33 +15,18 @@ public class ImageService : IImageService
 
     public async Task<byte[]> DownloadImage(string id)
     {
-        try
+        var imageStream = await imageStore.DownloadImage(id);
+        byte[] contentBytes;
+        using (var ms = new MemoryStream())
         {
-            var imageStream = await imageStore.DownloadImage(id);
-            byte[] contentBytes;
-            using (var ms = new MemoryStream())
-            {
-                imageStream.CopyTo(ms);
-                contentBytes = ms.ToArray();
-            }
-            return contentBytes;
+            imageStream.CopyTo(ms);
+            contentBytes = ms.ToArray();
         }
-        catch
-        {
-            throw;
-        }
+        return contentBytes;
     }
 
     public async Task<string> UploadImage([FromForm] UploadImageRequest request)
     {
-        try
-        {
-            string imageId = await imageStore.UploadImage(request);
-            return imageId;
-        }
-        catch
-        {
-            throw;
-        }
+        return await imageStore.UploadImage(request);
     }
 }

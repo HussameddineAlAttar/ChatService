@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Text;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
 
 namespace ChatService.Tests.ConversationTests;
 
@@ -18,21 +20,25 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 {
     private readonly CreateConvoRequest convoRequest;
     private readonly Conversation conversation;
+    private readonly EnumConvoResponse enumConvoResponse1;
+    private readonly EnumConvoResponse enumConvoResponse2;
+    private readonly ConvoResponseWithToken convoTokenResponse;
+
     private readonly SendMessageRequest sendMessageRequest;
     private readonly EnumMessageResponse enumMessageResponse1;
     private readonly EnumMessageResponse enumMessageResponse2;
     private readonly MessageTokenResponse messageTokenResponse;
+
     private readonly List<string> participants;
-    private readonly Message message;
     private readonly string username;
 
     private readonly HttpClient httpClient;
     private readonly Mock<IConversationService> conversationServiceMock = new();
     private readonly Mock<IMessageService> messageServiceMock = new();
-    private ConversationController controller;
 
-    private readonly int defaultLimit = 1;
+    private readonly int defaultLimit = 10;
     private readonly long defaultLastSeen = 1;
+    private readonly string? nullToken = null;
     private readonly string defaultToken = "randomToken";
 
     public ConversationControllerTest(WebApplicationFactory<Program> factory)
@@ -42,39 +48,83 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
             builder.ConfigureTestServices(services => { services.AddSingleton(conversationServiceMock.Object); });
             builder.ConfigureTestServices(services => { services.AddSingleton(messageServiceMock.Object); });
         }).CreateClient();
-        controller = new ConversationController(conversationServiceMock.Object, messageServiceMock.Object);
 
         username = "Foo";
         participants = new List<string> { "Foo", "Bar" };
         sendMessageRequest = new(Guid.NewGuid().ToString(),username, Guid.NewGuid().ToString());
-        message = sendMessageRequest.message;
         conversation = new Conversation(participants);
         convoRequest = new CreateConvoRequest(participants, sendMessageRequest);
+
+        enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "Foo", "Bar"));
+        enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "Fizz", "Buzz"));
+        convoTokenResponse = new(new List<EnumConvoResponse>() { enumConvoResponse2, enumConvoResponse1 },
+            username, defaultLimit, defaultLastSeen, defaultToken);
+
         enumMessageResponse1 = new("Hello World", "Foo", 1000);
         enumMessageResponse2 = new("Bye World", "Bar", 2000);
         messageTokenResponse = new(new List<EnumMessageResponse>() {enumMessageResponse2, enumMessageResponse1 },
             conversation.Id, defaultLimit, defaultLastSeen, defaultToken);
     }
 
-    public bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
+    private bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
     {
         return list1.SequenceEqual(list2);
+    }
+
+    private bool EqualConversationList(List<EnumConvoResponse> list1, List<EnumConvoResponse> list2)
+    {
+        return list1.SequenceEqual(list2);
+    }
+
+    //private bool EqualConvoRequest(CreateConvoRequest request1, CreateConvoRequest request2)
+    //{
+    //    bool equalParticipants = request1.Participants.SequenceEqual(request2.Participants);
+    //    bool equalMessages = request1.FirstMessage.message == request2.FirstMessage.message;
+    //    if(equalParticipants && equalMessages)
+    //    {
+    //        return true;
+    //    }
+    //    Debugger.Launch();
+    //    return false;
+    //}
+
+    private bool EqualConvoRequest(CreateConvoRequest request1, CreateConvoRequest request2)
+    {
+        bool equalParticipants = request1.Participants.SequenceEqual(request2.Participants);
+        var message1 = request1.FirstMessage.message;
+        var message2 = request2.FirstMessage.message;
+        bool equalMessages = message1.Id == message2.Id
+            && message1.SenderUsername == message2.SenderUsername
+            && message1.Text == message2.Text;
+
+        if (equalParticipants && equalMessages)
+        {
+            return true;
+        }
+        Debugger.Launch();
+        return false;
     }
 
     [Fact]
     public async Task CreateConversation()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(convoRequest)).Returns(Task.CompletedTask);
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+            .Returns(Task.CompletedTask);
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
+        var json = await httpResponse.Content.ReadAsStringAsync();
+        var createConvoResponse = JsonConvert.DeserializeObject<CreateConvoResponse>(json);
+
         Assert.Equal(HttpStatusCode.Created, httpResponse.StatusCode);
+        Assert.Equal(conversation.Id, createConvoResponse.Id);
     }
 
     [Fact]
     public async Task CreateConversation_Conflict()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.IsAny<CreateConvoRequest>())).ThrowsAsync(new ConversationConflictException());
-        messageServiceMock.Setup(m => m.EnumerateMessages(conversation.Id, It.IsAny<int>(), It.IsAny<long>(), It.IsAny<string>())).ReturnsAsync(messageTokenResponse);
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+            .ThrowsAsync(new ConversationConflictException());
+        messageServiceMock.Setup(m => m.EnumerateMessages(conversation.Id, defaultLimit, defaultLastSeen, nullToken)).ReturnsAsync(messageTokenResponse);
 
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
@@ -91,7 +141,8 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_ProfileNotFoundException()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.IsAny<CreateConvoRequest>())).ThrowsAsync(new ProfileNotFoundException(new List<string>() {"BarFoo", "BooFar"}));
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+            .ThrowsAsync(new ProfileNotFoundException(new List<string>() {"BarFoo", "BooFar"}));
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.NotFound, httpResponse.StatusCode);
@@ -100,7 +151,8 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_NotPartOfConversation()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.IsAny<CreateConvoRequest>())).ThrowsAsync(new NotPartOfConversationException());
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+            .ThrowsAsync(new NotPartOfConversationException());
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
@@ -126,33 +178,30 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
     }
 
-    //[Fact]
-    //public async Task EnumerateConversations()
-    //{
-    //    conversationServiceMock.Setup(m => m.EnumerateConversations(username))
-    //        .ReturnsAsync(new List<ConversationResponse>());
+    [Fact]
+    public async Task EnumerateConversations()
+    {
+        conversationServiceMock.Setup(m => m.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
+            .ReturnsAsync(convoTokenResponse);
 
-    //    var response = await httpClient.GetAsync($"/api/conversations/{username}");
-    //    Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    //}
+        var response = await httpClient.GetAsync($"/api/conversations?username={username}");
+        var json = await response.Content.ReadAsStringAsync();
+        var conversationsWithUri = JsonConvert.DeserializeObject<ConvoResponseWithToken>(json);
 
-    //[Fact]
-    //public async Task EnumerateConversations_ProfileNotFound()
-    //{
-    //    conversationServiceMock.Setup(m => m.EnumerateConversations(username))
-    //        .ThrowsAsync(new ProfileNotFoundException());
+        string expectedUri = $"/api/conversations?username={username}&limit={defaultLimit}&lastSeenConversationTime={defaultLastSeen}&continuationToken={defaultToken}";
 
-    //    var response = await httpClient.GetAsync($"/api/conversations/{username}");
-    //    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    //}
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(expectedUri, conversationsWithUri.NextUri);
+        Assert.True(EqualConversationList(convoTokenResponse.Conversations, conversationsWithUri.Conversations));
 
-    //[Fact]
-    //public async Task EnumerateConversations_ConversationsNotFound()
-    //{
-    //    conversationServiceMock.Setup(m => m.EnumerateConversations(username))
-    //        .ThrowsAsync(new ConversationNotFoundException());
+    }
 
-    //    var response = await httpClient.GetAsync($"/api/conversations/{username}");
-    //    Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    //}
+    [Fact]
+    public async Task EnumerateConversations_ProfileNotFound()
+    {
+        conversationServiceMock.Setup(m => m.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
+            .ThrowsAsync(new ProfileNotFoundException());
+        var response = await httpClient.GetAsync($"/api/conversations?username={username}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }

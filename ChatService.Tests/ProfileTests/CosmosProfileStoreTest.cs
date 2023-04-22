@@ -2,13 +2,7 @@
 using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatService.Tests.ProfileTests;
 

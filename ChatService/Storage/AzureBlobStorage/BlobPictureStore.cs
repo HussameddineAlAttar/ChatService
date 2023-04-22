@@ -1,11 +1,6 @@
-﻿using System.Net;
-using ChatService.DTO;
-using Microsoft.Azure.Cosmos;
-using ChatService.Storage.Entities;
-using Microsoft.AspNetCore.Mvc;
+﻿using ChatService.DTO;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using Azure;
 using ChatService.Exceptions;
 
 namespace ChatService.Storage.AzureBlobStorage;
