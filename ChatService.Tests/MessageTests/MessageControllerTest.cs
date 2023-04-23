@@ -128,5 +128,4 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
         var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
-
 }

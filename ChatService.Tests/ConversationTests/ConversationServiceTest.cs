@@ -18,7 +18,6 @@ public class ConversationServiceTest
     private readonly Conversation conversation1;
     private readonly Conversation conversation2;
     private readonly List<Conversation> conversationList;
-    private readonly List<EnumConvoResponse> enumConvoResponses;
 
     private readonly SendMessageRequest sendMessageRequest;
     private readonly List<string> participants1;
@@ -44,7 +43,6 @@ public class ConversationServiceTest
         conversation1 = new Conversation(participants1);
         conversation2 = new Conversation(participants2);
         conversationList = new() { conversation2, conversation1 };
-        enumConvoResponses = new() { };
 
         convoRequest = new CreateConvoRequest(participants1, sendMessageRequest);
         testProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
@@ -99,7 +97,18 @@ public class ConversationServiceTest
 
         Assert.Equal(expectedUri, conversationTokenResponse.NextUri);
         //Assert.True(EqualConversationList(conversationList, conversationTokenResponse.Conversations));
+    }
 
+    [Fact]
+    public async Task EnumerateConversations_NoConversations()
+    {
+        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, "first", "last"));
+        conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
+            .ReturnsAsync((new List<Conversation>() { }, nullToken));
+        var conversationTokenResponse = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
+
+        Assert.True(string.IsNullOrWhiteSpace(conversationTokenResponse.NextUri));
+        Assert.Empty(conversationTokenResponse.Conversations);
     }
 
     [Fact]
