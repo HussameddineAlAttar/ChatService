@@ -8,14 +8,14 @@ namespace ChatService.Services;
 public class ConversationService : IConversationService
 {
     private readonly IConversationStore conversationStore;
-    private readonly IMessageService messageService;
+    private readonly IMessagesStore messagesStore;
     private readonly IProfileStore profileStore;
 
-    public ConversationService(IConversationStore _conversationStore, IProfileStore _profileStore, IMessageService _messageService)
+    public ConversationService(IConversationStore _conversationStore, IProfileStore _profileStore, IMessagesStore _messageStore)
     {
         conversationStore = _conversationStore;
         profileStore = _profileStore;
-        messageService = _messageService;
+        messagesStore = _messageStore;
     }
 
     public async Task CreateConversation(CreateConvoRequest convoRequest)
@@ -28,7 +28,7 @@ public class ConversationService : IConversationService
         }
         try
         {
-            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessage.message, true);
+            await messagesStore.SendMessage(conversation.Id, convoRequest.FirstMessage.message);
             await conversationStore.CreateConversation(conversation);
         }
         catch { throw; }

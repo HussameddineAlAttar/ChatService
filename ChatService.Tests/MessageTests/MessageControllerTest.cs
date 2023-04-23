@@ -62,7 +62,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task SendMessage()
     {
-        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message)), false))
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
             .ReturnsAsync(message.Time);
         var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
             new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
@@ -76,7 +76,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task SendMessage_Conflict()
     {
-        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message)), false))
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
             .ThrowsAsync(new MessageConflictException());
         var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
             new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
@@ -86,7 +86,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task SendMessage_ConversationNotFound()
     {
-        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message)), false))
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
             .ThrowsAsync(new ConversationNotFoundException());
         var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
                     new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
@@ -96,7 +96,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task SendMessage_SenderNotPartOfConversation()
     {
-        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message)), false))
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
             .ThrowsAsync(new NotPartOfConversationException());
         var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
                     new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));

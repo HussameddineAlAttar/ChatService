@@ -1,25 +1,17 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
-using ChatService.Extensions;
 using ChatService.Services;
 using ChatService.Storage;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
-using Xunit;
+
 
 namespace ChatService.Tests.ConversationTests;
 
 public class ConversationServiceTest
 {
-    private readonly Mock<IMessageService> messageServiceMock = new();
     private readonly Mock<IConversationStore> conversationStoreMock = new();
     private readonly Mock<IProfileStore> profileStoreMock = new();
+    private readonly Mock<IMessagesStore> messageStoreMock = new();
     private readonly ConversationService conversationService;
 
     private readonly CreateConvoRequest convoRequest;
@@ -42,7 +34,7 @@ public class ConversationServiceTest
 
     public ConversationServiceTest()
     {
-        conversationService = new ConversationService(conversationStoreMock.Object, profileStoreMock.Object, messageServiceMock.Object);
+        conversationService = new ConversationService(conversationStoreMock.Object, profileStoreMock.Object, messageStoreMock.Object);
         username = "Foo";
         sendMessageRequest = new(Guid.NewGuid().ToString(), username, "Hello World");
         message = sendMessageRequest.message;
@@ -66,10 +58,10 @@ public class ConversationServiceTest
     [Fact]
     public async Task CreateConversation()
     {
-        messageServiceMock.Setup(x => x.SendMessage(conversation1.Id, message, true)).ReturnsAsync(123);
+        messageStoreMock.Setup(x => x.SendMessage(conversation1.Id, message)).Returns(Task.CompletedTask);
         await conversationService.CreateConversation(convoRequest);
 
-        messageServiceMock.Verify(x => x.SendMessage(conversation1.Id, message, true), Times.Once);
+        messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Once);
         conversationStoreMock.Verify(x => x.CreateConversation(conversation1), Times.Once);
     }
 
@@ -81,7 +73,7 @@ public class ConversationServiceTest
         {
             await conversationService.CreateConversation(convoRequest);
         });
-        messageServiceMock.Verify(x => x.SendMessage(conversation1.Id, message, true), Times.Never);
+        messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Never);
     }
 
     [Fact]
@@ -92,7 +84,7 @@ public class ConversationServiceTest
         {
             await conversationService.CreateConversation(convoRequest);
         });
-        messageServiceMock.Verify(x => x.SendMessage(conversation1.Id, message, true), Times.Once);
+        messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Once);
         conversationStoreMock.Verify(x => x.CreateConversation(conversation1), Times.Once);
     }
 
