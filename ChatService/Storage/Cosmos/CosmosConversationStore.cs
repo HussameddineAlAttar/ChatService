@@ -50,8 +50,8 @@ public class CosmosConversationStore : IConversationStore
         {
             var entity = await Container.ReadItemAsync<ConversationEntity>(
                 id: conversationId,
-                partitionKey: new PartitionKey(conversationId.SplitToUsernames()[0]),
-                new ItemRequestOptions
+                partitionKey: new PartitionKey(conversationId.SplitToUsernames()[0]),//can use the username of any participant
+                new ItemRequestOptions                                              // this method is only used in the tests
                 {
                     ConsistencyLevel = ConsistencyLevel.Session
                 }
@@ -98,9 +98,8 @@ public class CosmosConversationStore : IConversationStore
     }
 
 
-    public async Task UpdateLastModifiedTime(string conversationId, long unixTime)
+    public async Task UpdateLastModifiedTime(string conversationId, List<string> usernames, long unixTime)
     {
-        List<string> usernames = conversationId.SplitToUsernames();
         try
         {
             var tasks = usernames.Select(async username =>
@@ -130,9 +129,8 @@ public class CosmosConversationStore : IConversationStore
     }
 
 
-    public async Task DeleteConversation(string conversationId)
+    public async Task DeleteConversation(string conversationId, List<string> usernames)
     {
-        List<string> usernames = conversationId.SplitToUsernames();
         try
         {
             var tasks = usernames.Select(async username =>

@@ -125,7 +125,7 @@ public class ConversationServiceTest
     [Fact]
     public async Task ModifyTime()
     {
-        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation1.Id, 123)).Returns(Task.CompletedTask);
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation1.Id, participants1, 123)).Returns(Task.CompletedTask);
         var time = await conversationService.UpdateLastModifiedTime(conversation1.Id, 123);
         Assert.Equal(123, time);
     }
@@ -133,7 +133,7 @@ public class ConversationServiceTest
     [Fact]
     public async Task ModifyTime_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation1.Id, It.IsAny<long>())).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversation1.Id, participants1, It.IsAny<long>())).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
             await conversationService.UpdateLastModifiedTime(conversation1.Id, 123);

@@ -8,6 +8,6 @@ public interface IConversationStore
     Task<Conversation> FindConversationById(string id);
     Task<(List<Conversation> conversations, string? continuationToken)> EnumerateConversations(
                 string username, int limit, long? lastSeenConversationTime, string continuationToken);
-    Task UpdateLastModifiedTime(string conversationId, long unixTime);
-    Task DeleteConversation(string conversationId);
+    Task UpdateLastModifiedTime(string conversationId, List<string> usernames, long unixTime);
+    Task DeleteConversation(string conversationId, List<string> usernames);
 }

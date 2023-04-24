@@ -60,11 +60,11 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
 
     public async Task DisposeAsync()
     {
-        await conversationStore.DeleteConversation(conversation.Id);
-        await conversationStore.DeleteConversation(conversation_conflict.Id);
-        await conversationStore.DeleteConversation(conversation_enum1.Id);
-        await conversationStore.DeleteConversation(conversation_enum2.Id);
-        await conversationStore.DeleteConversation(conversation_modify.Id);
+        await conversationStore.DeleteConversation(conversation.Id, participants);
+        await conversationStore.DeleteConversation(conversation_conflict.Id, participants);
+        await conversationStore.DeleteConversation(conversation_enum1.Id, participants_enum1);
+        await conversationStore.DeleteConversation(conversation_enum2.Id, participants_enum2);
+        await conversationStore.DeleteConversation(conversation_modify.Id, participants_modify);
     }
 
     private bool EqualConversations(Conversation conv1, Conversation conv2)
@@ -143,7 +143,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     {
         await conversationStore.CreateConversation(conversation_modify);
         conversation_modify.ModifiedTime = 987;
-        await conversationStore.UpdateLastModifiedTime(conversation_modify.Id, 987);
+        await conversationStore.UpdateLastModifiedTime(conversation_modify.Id, participants_modify, 987);
         var modifiedConversation = await conversationStore.FindConversationById(conversation_modify.Id);
         Assert.True(EqualConversations(conversation_modify, modifiedConversation));
     }
@@ -151,9 +151,13 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     [Fact]
     public async Task ModifyTime_NotFound()
     {
+        string randomUser1 = Guid.NewGuid().ToString();
+        string randomUser2 = Guid.NewGuid().ToString();
+        List<string> randomUsers = new List<string>() { randomUser1, randomUser2 };
+        string conversationId = randomUser1 + "_" + randomUser2;
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
-            await conversationStore.UpdateLastModifiedTime(Guid.NewGuid().ToString(), 123);
+            await conversationStore.UpdateLastModifiedTime(conversationId, randomUsers, 123);
         });
     }
 }

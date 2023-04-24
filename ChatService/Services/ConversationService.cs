@@ -53,7 +53,7 @@ public class ConversationService : IConversationService
         List<string> usernames = conversationId.SplitToUsernames();
         try
         {
-            await conversationStore.UpdateLastModifiedTime(conversationId, unixTime);
+            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, unixTime);
             return unixTime;
         }
         catch { throw; }

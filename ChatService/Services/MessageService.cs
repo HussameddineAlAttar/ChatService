@@ -39,7 +39,7 @@ public class MessageService : IMessageService
         }
         try
         {
-            await conversationStore.UpdateLastModifiedTime(conversationId, message.Time);
+            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, message.Time);
             await messagesStore.SendMessage(conversationId, message);
             return message.Time;
         }
