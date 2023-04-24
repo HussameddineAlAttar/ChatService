@@ -1,110 +1,131 @@
-﻿//using ChatService.Controllers;
-//using ChatService.DTO;
-//using ChatService.Exceptions;
-//using ChatService.Services;
-//using ChatService.Storage;
-//using Microsoft.AspNetCore.Mvc;
-//using Microsoft.AspNetCore.Mvc.Testing;
-//using Microsoft.AspNetCore.TestHost;
-//using Microsoft.Extensions.DependencyInjection;
-//using Moq;
-//using Newtonsoft.Json;
-//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using System.Net;
-//using System.Net.Http.Json;
-//using System.Text;
-//using System.Threading.Tasks;
+﻿using ChatService.Controllers;
+using ChatService.DTO;
+using ChatService.Exceptions;
+using ChatService.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.VisualBasic;
+using Moq;
+using Newtonsoft.Json;
+using System.Net;
+using System.Text;
 
-//namespace ChatService.Tests.MessageTests;
+namespace ChatService.Tests.MessageTests;
 
-//public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program>>
-//{
-//    private readonly Mock<IMessageService> messageServiceMock = new();
-//    private readonly HttpClient httpClient;
-//    private readonly MessageController controller;
+public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly Mock<IMessageService> messageServiceMock = new();
+    private readonly HttpClient httpClient;
 
-//    private readonly SendMessageRequest request;
-//    private readonly Message message;
-//    private readonly List<EnumMessageResponse> messagesList;
-//    private readonly string conversationId;
+    private readonly SendMessageRequest messageRequest;
+    private readonly Message message;
+    private readonly EnumMessageResponse enumMessage1;
+    private readonly EnumMessageResponse enumMessage2;
 
-//    public MessageControllerTest(WebApplicationFactory<Program> factory)
-//    {
-//        httpClient = factory.WithWebHostBuilder(builder =>
-//        {
-//            builder.ConfigureTestServices(services => { services.AddSingleton(messageServiceMock.Object); });
-//        }).CreateClient();
-//        controller = new MessageController(messageServiceMock.Object);
-//        request = new SendMessageRequest("FooBar", "Hello World");
-//        message = request.message;
-//        conversationId = Guid.NewGuid().ToString();
-//        messagesList = new List<EnumMessageResponse>();
-//    }
+    private readonly List<EnumMessageResponse> messagesList;
+    private readonly MessageTokenResponse messageTokenResponse;
+    private readonly string conversationId;
 
-//    [Fact]
-//    public async Task SendMessage()
-//    {
-//        messageServiceMock.Setup(m => m.SendMessage(conversationId, message, false)).ReturnsAsync(message.Time);
-//        var response = await controller.SendMessage(conversationId, request);
-//        var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(response.Result);
-//        var returnedTime = Assert.IsType<long>(createdAtActionResult.Value);
-//        Assert.Equal(message.Time, returnedTime);
-//        messageServiceMock.Verify(m => m.SendMessage(conversationId, message, false), Times.Once);
-//    }
+    private readonly int defaultLimit = 10;
+    private readonly long defaultLastSeen = 1;
+    private readonly string? nullToken = null;
+    private readonly string defaultToken = "randomToken";
 
-//    [Fact]
-//    public async Task SendMessage_Conflict()
-//    { 
+    public MessageControllerTest(WebApplicationFactory<Program> factory)
+    {
+        httpClient = factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services => { services.AddSingleton(messageServiceMock.Object); });
+        }).CreateClient();
+        messageRequest = new SendMessageRequest(Guid.NewGuid().ToString(), "FooBar", "Hello World");
+        conversationId = Guid.NewGuid().ToString();
 
-//        messageServiceMock.Setup(m => m.SendMessage(conversationId, message, false)).ThrowsAsync(new MessageConflictException());
-//        var response = await controller.SendMessage(conversationId, request);
-//        var conflictResult = Assert.IsType<ConflictObjectResult>(response.Result);
-//        messageServiceMock.Verify(m => m.SendMessage(conversationId, message, false), Times.Once);
+        enumMessage1 = new("Hello", "FooBar", 123);
+        enumMessage2 = new("Bye", "FizzBuzz", 456);
+        messageTokenResponse = new(new List<EnumMessageResponse>() { enumMessage2, enumMessage1 },
+            conversationId, defaultLimit, defaultLastSeen, defaultToken);
+        message = messageRequest.message;
+        conversationId = Guid.NewGuid().ToString();
+    }
 
-//    }
+    private bool EqualMessage(Message msg1, Message msg2)
+    {
+        return msg1.Text == msg2.Text && msg1.SenderUsername == msg2.SenderUsername && msg1.Id == msg2.Id;
+    }
+    private bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
+    {
+        return list1.SequenceEqual(list2);
+    }
 
-//    [Fact]
-//    public async Task SendMessage_ConversationNotFound()
-//    {
-//        messageServiceMock.Setup(m => m.SendMessage(conversationId, message, false)).ThrowsAsync(new ConversationNotFoundException());
-//        var response = await controller.SendMessage(conversationId, request);
-//        var conflictResult = Assert.IsType<NotFoundObjectResult>(response.Result);
-//        messageServiceMock.Verify(m => m.SendMessage(conversationId, message, false), Times.Once);
-//    }
+    [Fact]
+    public async Task SendMessage()
+    {
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
+            .ReturnsAsync(message.Time);
+        var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
+            new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
+        var json = await httpResponse.Content.ReadAsStringAsync();
+        var sendMessageResponse = JsonConvert.DeserializeObject<SendMessageResponse>(json);
 
-//    [Fact]
-//    public async Task SendMessage_SenderNotPartOfConversation()
-//    {
-//        messageServiceMock.Setup(m => m.SendMessage(conversationId, message, false)).ThrowsAsync(new NotPartOfConversationException());
-//        var response = await controller.SendMessage(conversationId, request);
-//        var badRequest = Assert.IsType<BadRequestObjectResult>(response.Result);
-//        messageServiceMock.Verify(m => m.SendMessage(conversationId, message, false), Times.Once);
-//    }
+        Assert.Equal(HttpStatusCode.Created, httpResponse.StatusCode);
+        Assert.Equal(message.Time, sendMessageResponse.CreatedUnixTime);
+    }
 
-//    [Fact]
-//    public async Task EnumerateMessages()
-//    {
-//        messageServiceMock.Setup(m => m.EnumerateMessages(conversationId))
-//            .ReturnsAsync(messagesList);
+    [Fact]
+    public async Task SendMessage_Conflict()
+    {
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
+            .ThrowsAsync(new MessageConflictException());
+        var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
+            new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.Conflict, httpResponse.StatusCode);
+    }
 
-//        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
-//        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-//        var json = await response.Content.ReadAsStringAsync();
-//        Assert.Equal(messagesList, JsonConvert.DeserializeObject<List<EnumMessageResponse>>(json));
-//        messageServiceMock.Verify(mock => mock.EnumerateMessages(conversationId), Times.Once());
-//    }
+    [Fact]
+    public async Task SendMessage_ConversationNotFound()
+    {
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
+            .ThrowsAsync(new ConversationNotFoundException());
+        var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
+                    new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.NotFound, httpResponse.StatusCode);
+    }
 
-//    [Fact]
-//    public async Task EnumerateMessages_ConversationNotFound()
-//    {
-//        messageServiceMock.Setup(m => m.EnumerateMessages(conversationId))
-//             .ThrowsAsync(new ConversationNotFoundException());
+    [Fact]
+    public async Task SendMessage_SenderNotPartOfConversation()
+    {
+        messageServiceMock.Setup(m => m.SendMessage(conversationId, It.Is<Message>(msg => EqualMessage(msg, message))))
+            .ThrowsAsync(new NotPartOfConversationException());
+        var httpResponse = await httpClient.PostAsync($"/api/conversations/{conversationId}/messages",
+                    new StringContent(JsonConvert.SerializeObject(messageRequest), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
+    }
 
-//        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
-//        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-//        messageServiceMock.Verify(mock => mock.EnumerateMessages(conversationId), Times.Once());
-//    }
+    [Fact]
+    public async Task EnumerateMessages()
+    {
+        messageServiceMock.Setup(m => m.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
+            .ReturnsAsync(messageTokenResponse);
 
-//}
+        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
+        var json = await response.Content.ReadAsStringAsync();
+        var receivedMessageResponse = JsonConvert.DeserializeObject<MessageTokenResponse>(json);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(messageTokenResponse.NextUri, receivedMessageResponse.NextUri);
+        Assert.True(EqualMessageList(messageTokenResponse.Messages, receivedMessageResponse.Messages));
+
+    }
+
+    [Fact]
+    public async Task EnumerateMessages_ConversationNotFound()
+    {
+        messageServiceMock.Setup(m => m.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
+             .ThrowsAsync(new ConversationNotFoundException());
+
+        var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}

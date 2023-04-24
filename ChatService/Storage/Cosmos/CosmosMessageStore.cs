@@ -2,7 +2,6 @@
 using ChatService.Exceptions;
 using ChatService.Storage.Entities;
 using Microsoft.Azure.Cosmos;
-using Microsoft.Azure.Cosmos.Linq;
 using System.Net;
 namespace ChatService.Storage.Cosmos;
 
@@ -31,28 +30,6 @@ public class CosmosMessageStore : IMessagesStore
             }
             throw;
         }
-    }
-
-    public async Task<List<Message>> EnumerateMessages(string conversationId)
-    {
-        var entities = new List<MessageEntity>();
-        var iterator = Container.GetItemLinqQueryable<MessageEntity>()
-                                 .Where(x => x.partitionKey == conversationId)
-                                 .ToFeedIterator();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            entities.AddRange(response);
-        }
-
-        if (entities.Count == 0)
-        {
-            throw new ConversationNotFoundException($"Conversation of id {conversationId} not found");
-        }
-
-        var messages = entities.Select(ToMessage).OrderByDescending(x => x.Time).ToList();
-        return messages;
     }
 
     public async Task<(List<Message> messages, string continuationToken)> EnumerateMessages(string conversationId, int limit, long? lastSeenMessageTime, string continuationToken)

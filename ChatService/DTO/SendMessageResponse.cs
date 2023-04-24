@@ -2,9 +2,9 @@
 
 public record SendMessageResponse
 {
-    public SendMessageResponse(long CreatedUnixTime)
+    public SendMessageResponse(long createdUnixTime)
     {
-        this.CreatedUnixTime = CreatedUnixTime;
+        CreatedUnixTime = createdUnixTime;
     }
-    public long CreatedUnixTime {get ; set; }
+    public long CreatedUnixTime {get ; }
 }

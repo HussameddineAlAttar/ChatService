@@ -2,21 +2,20 @@
 using ChatService.Exceptions;
 using ChatService.Extensions;
 using ChatService.Storage;
-using System.Net;
 
 namespace ChatService.Services;
 
 public class ConversationService : IConversationService
 {
     private readonly IConversationStore conversationStore;
-    private readonly IMessageService messageService;
+    private readonly IMessagesStore messagesStore;
     private readonly IProfileStore profileStore;
 
-    public ConversationService(IConversationStore _conversationStore, IProfileStore _profileStore, IMessageService _messageService)
+    public ConversationService(IConversationStore _conversationStore, IProfileStore _profileStore, IMessagesStore _messageStore)
     {
         conversationStore = _conversationStore;
         profileStore = _profileStore;
-        messageService = _messageService;
+        messagesStore = _messageStore;
     }
 
     public async Task CreateConversation(CreateConvoRequest convoRequest)
@@ -29,16 +28,13 @@ public class ConversationService : IConversationService
         }
         try
         {
-            await messageService.SendMessage(conversation.Id, convoRequest.FirstMessage.message, true);
+            await messagesStore.SendMessage(conversation.Id, convoRequest.FirstMessage.message);
             await conversationStore.CreateConversation(conversation);
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 
-    public async Task<(List<ConversationResponse> conversations, string? token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<ConvoResponseWithToken> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
@@ -46,12 +42,10 @@ public class ConversationService : IConversationService
             (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(
                 username, limit, lastSeenConversationTime, continuationToken);
             var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            return (convResponses, token);
+            ConvoResponseWithToken responseWithUri = new(convResponses, username, limit, lastSeenConversationTime, token);
+            return responseWithUri;
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 
     public async Task<long> UpdateLastModifiedTime(string conversationId, long unixTime)
@@ -59,12 +53,9 @@ public class ConversationService : IConversationService
         List<string> usernames = conversationId.SplitToUsernames();
         try
         {
-            await conversationStore.UpdateLastModifiedTime(conversationId, unixTime);
+            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, unixTime);
             return unixTime;
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 }

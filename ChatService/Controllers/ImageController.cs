@@ -1,10 +1,7 @@
-﻿using Azure.Storage.Blobs.Models;
-using ChatService.DTO;
+﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Cosmos;
 
 [ApiController]
 [Route("api/images")]

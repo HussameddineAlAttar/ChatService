@@ -1,9 +1,7 @@
 using ChatService.DTO;
-using ChatService.Controllers;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Moq;
 using Microsoft.AspNetCore.TestHost;
-using System.Net.Http;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
 using Newtonsoft.Json;

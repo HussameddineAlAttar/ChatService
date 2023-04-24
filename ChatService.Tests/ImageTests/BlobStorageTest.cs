@@ -86,7 +86,6 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
         }
 
         await blobStorage.DeleteImage(response);
-        
     }
 
     [Theory]
@@ -127,7 +126,6 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
         });
     }
 
-
     [Fact]
     public async Task Delete_Image_NotFound()
     {
@@ -138,4 +136,3 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
 
     }
 }
-

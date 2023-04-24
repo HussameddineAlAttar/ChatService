@@ -28,9 +28,9 @@ public static class ProfileStoreExtension
         return missingProfileUsernames;
     }
 
-    public static async Task<List<ConversationResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string sender, List<Conversation> conversations)
+    public static async Task<List<EnumConvoResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string sender, List<Conversation> conversations)
     {
-        List<ConversationResponse> response = new();
+        List<EnumConvoResponse> response = new();
         foreach (var conversation in conversations)
         {
             Profile Recipient;
@@ -42,7 +42,7 @@ public static class ProfileStoreExtension
             {
                 Recipient = await store.GetProfile(conversation.Participants[1]);
             }
-            response.Add(new ConversationResponse(conversation.Id, conversation.ModifiedTime, Recipient));
+            response.Add(new EnumConvoResponse(conversation.Id, conversation.ModifiedTime, Recipient));
         }
         return response;
     }

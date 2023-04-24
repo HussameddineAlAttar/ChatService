@@ -27,39 +27,23 @@ public class MessageService : IMessageService
             var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
             return messageTokenResponse;
         }
-        catch
-        {
-            throw;
-        }
+        catch { throw; }
     }
 
-
-    public async Task<long> SendMessage(string conversationId, Message message, bool FirstTime = false)
+    public async Task<long> SendMessage(string conversationId, Message message)
     {
         List<string> usernames = conversationId.SplitToUsernames();
         if (!usernames.Contains(message.SenderUsername))
         {
-            throw new NotPartOfConversationException();
-        }
-        bool conversationExists = await conversationStore.CheckIfConversationExists(conversationId);
-        if (!conversationExists && !FirstTime)
-        {
-            throw new ConversationNotFoundException();
+            throw new NotPartOfConversationException($"Sender {message.SenderUsername} is not part of the conversation {conversationId}");
         }
         try
         {
+            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, message.Time);
             await messagesStore.SendMessage(conversationId, message);
-            await conversationStore.UpdateLastModifiedTime(conversationId, message.Time);
             return message.Time;
         }
-        catch (Exception e)
-        {
-            if (e is ConversationNotFoundException)
-            {
-                return message.Time;
-            }
-            throw;
-        }
+        catch { throw; }
 
     }
 }
