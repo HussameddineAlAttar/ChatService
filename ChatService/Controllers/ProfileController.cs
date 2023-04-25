@@ -29,7 +29,6 @@ public class ProfileController : ControllerBase
             try
             {
                 var profile = await profileInterface.GetProfile(username);
-                logger.LogInformation("Retrieved a Profile");
                 return Ok(profile);
             }
             catch (Exception e)

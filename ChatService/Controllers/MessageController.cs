@@ -61,7 +61,6 @@ public class MessageController : ControllerBase
         try
         {
             var messageTokenResponse = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
-            logger.LogInformation("Retrieved Messages");
             return Ok(messageTokenResponse);
         }
         catch (Exception e)

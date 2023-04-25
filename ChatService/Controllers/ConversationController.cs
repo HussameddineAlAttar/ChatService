@@ -74,7 +74,6 @@ public class ConversationController : ControllerBase
         try
         {
             var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
-            logger.LogInformation("Retrieved Conversations");
             return Ok(responseWithUri);
         }
         catch (Exception e)
