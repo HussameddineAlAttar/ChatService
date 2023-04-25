@@ -18,13 +18,17 @@ public class ConversationServiceTest
     private readonly Conversation conversation1;
     private readonly Conversation conversation2;
     private readonly List<Conversation> conversationList;
+    private readonly List<EnumConvoResponse> enumConversationList;
 
     private readonly SendMessageRequest sendMessageRequest;
     private readonly List<string> participants1;
     private readonly List<string> participants2;
     private readonly Message message;
     private readonly string username;
-    private readonly Profile testProfile;
+
+    private readonly Profile FooProfile;
+    private readonly Profile BarProfile;
+    private readonly Profile NewBarProfile;
 
     private readonly int defaultLimit = 10;
     private readonly long defaultLastSeen = 1;
@@ -35,6 +39,10 @@ public class ConversationServiceTest
     {
         conversationService = new ConversationService(conversationStoreMock.Object, profileStoreMock.Object, messageStoreMock.Object);
         username = "Foo";
+        FooProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
+        BarProfile = new Profile("Bar", "FirstName", "LastName", Guid.NewGuid().ToString());
+        NewBarProfile = new Profile("NewBar", "FirstName", "LastName", Guid.NewGuid().ToString());
+
         sendMessageRequest = new(Guid.NewGuid().ToString(), username, "Hello World");
         message = sendMessageRequest.message;
 
@@ -43,14 +51,30 @@ public class ConversationServiceTest
         conversation1 = new Conversation(participants1);
         conversation2 = new Conversation(participants2);
         conversationList = new() { conversation2, conversation1 };
+        enumConversationList = new()
+        {
+            new EnumConvoResponse(conversation2.Id, conversation2.ModifiedTime, NewBarProfile),
+            new EnumConvoResponse(conversation1.Id, conversation1.ModifiedTime, BarProfile)
+        };
 
         convoRequest = new CreateConvoRequest(participants1, sendMessageRequest);
-        testProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
     }
 
     private bool EqualConversationList(List<EnumConvoResponse> list1, List<EnumConvoResponse> list2)
     {
-        return list1.SequenceEqual(list2);
+        for (int i = 0; i < list1.Count; ++i)
+        {
+            if (list1[i].Id != list2[i].Id || list1[i].Recipient != list2[i].Recipient)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private bool EqualConversation(Conversation conv1, Conversation conv2)
+    {
+        return conv1.Participants.SequenceEqual(conv2.Participants) && conv1.Id == conv2.Id;
     }
 
     [Fact]
@@ -60,7 +84,7 @@ public class ConversationServiceTest
         await conversationService.CreateConversation(convoRequest);
 
         messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Once);
-        conversationStoreMock.Verify(x => x.CreateConversation(conversation1), Times.Once);
+        conversationStoreMock.Verify(x => x.CreateConversation(It.Is<Conversation>(conv => EqualConversation(conv, conversation1))), Times.Once);
     }
 
     [Fact]
@@ -77,26 +101,30 @@ public class ConversationServiceTest
     [Fact]
     public async Task CreateConversation_Conflict()
     {
-        conversationStoreMock.Setup(x => x.CreateConversation(conversation1)).ThrowsAsync(new ConversationConflictException());
+        conversationStoreMock.Setup(x => x.CreateConversation(It.Is<Conversation>(conv => EqualConversation(conv, conversation1))))
+            .ThrowsAsync(new ConversationConflictException());
         await Assert.ThrowsAsync<ConversationConflictException>(async () =>
         {
             await conversationService.CreateConversation(convoRequest);
         });
         messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Once);
-        conversationStoreMock.Verify(x => x.CreateConversation(conversation1), Times.Once);
+        conversationStoreMock.Verify(x => x.CreateConversation(It.Is<Conversation>(conv => EqualConversation(conv, conversation1))), Times.Once);
     }
 
     [Fact]
     public async Task EnumerateConversations()
     {
-        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, "first", "last"));
+        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(FooProfile);
+        profileStoreMock.Setup(x => x.GetProfile("Bar")).ReturnsAsync(BarProfile);
+        profileStoreMock.Setup(x => x.GetProfile("NewBar")).ReturnsAsync(NewBarProfile);
+
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((conversationList, defaultToken));
         string expectedUri = $"/api/conversations?username={username}&limit={defaultLimit}&lastSeenConversationTime={defaultLastSeen}&continuationToken={defaultToken}";
         var conversationTokenResponse = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
 
         Assert.Equal(expectedUri, conversationTokenResponse.NextUri);
-        //Assert.True(EqualConversationList(conversationList, conversationTokenResponse.Conversations));
+        Assert.True(EqualConversationList(enumConversationList, conversationTokenResponse.Conversations));
     }
 
     [Fact]

@@ -51,7 +51,7 @@ public class CosmosConversationStore : IConversationStore
             var entity = await Container.ReadItemAsync<ConversationEntity>(
                 id: conversationId,
                 partitionKey: new PartitionKey(conversationId.SplitToUsernames()[0]),//can use the username of any participant
-                new ItemRequestOptions                                              // this method is only used in the tests
+                new ItemRequestOptions
                 {
                     ConsistencyLevel = ConsistencyLevel.Session
                 }

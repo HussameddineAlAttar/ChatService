@@ -1,10 +1,8 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using ChatService.Storage;
+using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using Microsoft.VisualBasic;
 using System.Net;
 
 namespace ChatService.Controllers;
@@ -16,12 +14,15 @@ public class ConversationController : ControllerBase
     private readonly IMessageService messageService;
     private readonly IConversationService conversationService;
     private readonly ILogger<ConversationController> logger;
+    private readonly TelemetryClient telemetryClient;
 
-    public ConversationController(IConversationService _conversationService, IMessageService _messageService, ILogger<ConversationController> _logger)
+    public ConversationController(IConversationService _conversationService, IMessageService _messageService,
+        ILogger<ConversationController> _logger, TelemetryClient _telemetryClient)
     {
         conversationService = _conversationService;
         messageService = _messageService;
         logger = _logger;
+        telemetryClient = _telemetryClient;
     }
 
     [HttpPost]
@@ -44,6 +45,7 @@ public class ConversationController : ControllerBase
                 await conversationService.CreateConversation(request);
                 var response = new CreateConvoResponse(conversation.Id, conversation.CreatedTime);
                 logger.LogInformation("Created a Conversation");
+                telemetryClient.TrackEvent("ConversationCreated");
                 return CreatedAtAction(nameof(CreateConversation), response);
             }
             catch (Exception e)
@@ -69,22 +71,19 @@ public class ConversationController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ConvoResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
-        using (logger.BeginScope("{Username}", username)) {
-
-            try
+        try
+        {
+            var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            logger.LogInformation("Retrieved Conversations");
+            return Ok(responseWithUri);
+        }
+        catch (Exception e)
+        {
+            if (e is ProfileNotFoundException)
             {
-                var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
-                logger.LogInformation("Retrieved Conversations");
-                return Ok(responseWithUri);
+                return NotFound($"Profile with username {username} not found");
             }
-            catch (Exception e)
-            {
-                if (e is ProfileNotFoundException)
-                {
-                    return NotFound($"Profile with username {username} not found");
-                }
-                throw;
-            }
+            throw;
         }
     }
 }
