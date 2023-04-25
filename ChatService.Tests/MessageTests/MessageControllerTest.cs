@@ -1,12 +1,9 @@
-﻿using ChatService.Controllers;
-using ChatService.DTO;
+﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Services;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.VisualBasic;
 using Moq;
 using Newtonsoft.Json;
 using System.Net;
@@ -24,7 +21,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     private readonly EnumMessageResponse enumMessage1;
     private readonly EnumMessageResponse enumMessage2;
 
-    private readonly List<EnumMessageResponse> messagesList;
+    private readonly List<EnumMessageResponse> enumMessagesList;
     private readonly MessageTokenResponse messageTokenResponse;
     private readonly string conversationId;
 
@@ -44,8 +41,8 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
 
         enumMessage1 = new("Hello", "FooBar", 123);
         enumMessage2 = new("Bye", "FizzBuzz", 456);
-        messageTokenResponse = new(new List<EnumMessageResponse>() { enumMessage2, enumMessage1 },
-            conversationId, defaultLimit, defaultLastSeen, defaultToken);
+        enumMessagesList = new List<EnumMessageResponse>() { enumMessage2, enumMessage1 };
+        messageTokenResponse = new(enumMessagesList, conversationId, defaultLimit, defaultLastSeen, defaultToken);
         message = messageRequest.message;
         conversationId = Guid.NewGuid().ToString();
     }

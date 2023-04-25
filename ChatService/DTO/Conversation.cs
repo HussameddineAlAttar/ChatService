@@ -9,7 +9,7 @@ public record Conversation
         Participants.Sort();
         this.Participants = Participants;
         Id = string.Join("_", Participants);
-        CreatedTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        CreatedTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         ModifiedTime = CreatedTime;
     }
 

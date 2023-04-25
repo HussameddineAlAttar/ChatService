@@ -9,7 +9,7 @@ public record SendMessageRequest
         this.SenderUsername = SenderUsername;
         this.Text = Text;
         Id = id;
-        Time = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        Time = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         message = new Message(SenderUsername, Text, Id, Time);
     }
     public string Id { get; init; }

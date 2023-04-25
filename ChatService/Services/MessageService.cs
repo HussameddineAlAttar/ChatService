@@ -20,6 +20,7 @@ public class MessageService : IMessageService
     {
         try
         {
+            await conversationStore.FindConversationById(conversationId);
             (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
             var messageResponses = messages.Select(message =>
             new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))

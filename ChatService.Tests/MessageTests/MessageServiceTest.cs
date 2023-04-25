@@ -50,7 +50,7 @@ public class MessageServiceTest
     }
 
     [Fact]
-    public async Task EnumerateMessages_ConversationNotFound()
+    public async Task EnumerateMessages_NoMoreMessages()
     {
         messageStoreMock.Setup(x => x.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Message>() { }, nullToken));
@@ -58,6 +58,17 @@ public class MessageServiceTest
 
         Assert.True(string.IsNullOrWhiteSpace(result.NextUri));
         Assert.Empty(result.Messages);
+    }
+
+    [Fact]
+    public async Task EnumerateMessages_ConversationNotFound()
+    {
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId)).ThrowsAsync(new ConversationNotFoundException());
+        await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
+        {
+            await messageService.EnumerateMessages(conversationId);
+        });
+        messageStoreMock.Verify(x => x.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, defaultToken), Times.Never);
     }
 
     [Fact]

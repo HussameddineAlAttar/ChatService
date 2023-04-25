@@ -2,6 +2,7 @@
 using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage;
+using Microsoft.ApplicationInsights;
 
 namespace ChatService.Controllers;
 
@@ -11,11 +12,13 @@ public class ProfileController : ControllerBase
 {
     private readonly IProfileStore profileInterface;
     private readonly ILogger<ProfileController> logger;
+    private readonly TelemetryClient telemetryClient;
 
-    public ProfileController(IProfileStore _profileInterface, ILogger<ProfileController> _logger)
+    public ProfileController(IProfileStore _profileInterface, ILogger<ProfileController> _logger, TelemetryClient _telemetryClient)
     {
         profileInterface = _profileInterface;
         logger = _logger;
+        telemetryClient = _telemetryClient;
     }
 
     [HttpGet("{username}")]
@@ -49,6 +52,7 @@ public class ProfileController : ControllerBase
             {
                 await profileInterface.CreateProfile(profile);
                 logger.LogInformation("Created a Profile");
+                telemetryClient.TrackEvent("ProfileCreated");
                 return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
             }
             catch (Exception e)

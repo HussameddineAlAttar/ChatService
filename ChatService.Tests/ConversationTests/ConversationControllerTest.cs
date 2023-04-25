@@ -6,13 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using System.Net;
 using ChatService.Exceptions;
-using ChatService.Controllers;
-using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System.Text;
-using System.Collections.Generic;
 using System.Diagnostics;
-using Microsoft.AspNetCore.Http;
 
 namespace ChatService.Tests.ConversationTests;
 
@@ -97,12 +93,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
             && message1.SenderUsername == message2.SenderUsername
             && message1.Text == message2.Text;
 
-        if (equalParticipants && equalMessages)
-        {
-            return true;
-        }
-        Debugger.Launch();
-        return false;
+        return equalParticipants && equalMessages;
     }
 
     [Fact]
