@@ -4,6 +4,8 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace ChatService.Controllers;
 
@@ -60,7 +62,8 @@ public class MessageController : ControllerBase
     {
         try
         {
-            var messageTokenResponse = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            (var messageResponses, var token) = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
             return Ok(messageTokenResponse);
         }
         catch (Exception e)
@@ -70,6 +73,6 @@ public class MessageController : ControllerBase
                 return NotFound($"Conversation with id {conversationId} not found.");
             }
             throw;
-        }        
+        }
     }
 }

@@ -44,7 +44,6 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
         enumMessagesList = new List<EnumMessageResponse>() { enumMessage2, enumMessage1 };
         messageTokenResponse = new(enumMessagesList, conversationId, defaultLimit, defaultLastSeen, defaultToken);
         message = messageRequest.message;
-        conversationId = Guid.NewGuid().ToString();
     }
 
     private bool EqualMessage(Message msg1, Message msg2)
@@ -104,7 +103,7 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     public async Task EnumerateMessages()
     {
         messageServiceMock.Setup(m => m.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
-            .ReturnsAsync(messageTokenResponse);
+            .ReturnsAsync((enumMessagesList, defaultToken));
 
         var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
         var json = await response.Content.ReadAsStringAsync();
@@ -113,7 +112,6 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(messageTokenResponse.NextUri, receivedMessageResponse.NextUri);
         Assert.True(EqualMessageList(messageTokenResponse.Messages, receivedMessageResponse.Messages));
-
     }
 
     [Fact]

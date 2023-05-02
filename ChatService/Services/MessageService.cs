@@ -16,19 +16,15 @@ public class MessageService : IMessageService
         conversationStore = _conversationStore;
     }
 
-    public async Task<MessageTokenResponse> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
+    public async Task<(List<EnumMessageResponse>, string token)> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
-        try
-        {
-            await conversationStore.FindConversationById(conversationId);
-            (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
-            var messageResponses = messages.Select(message =>
-            new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
-                .ToList();
-            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
-            return messageTokenResponse;
-        }
-        catch { throw; }
+        List<string> usernames = conversationId.SplitToUsernames();
+        await conversationStore.FindConversationById(conversationId, usernames[0]); // can use the username of any participant to check if convo exists
+        (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+        var messageResponses = messages.Select(message =>
+        new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
+            .ToList();
+        return (messageResponses, token);
     }
 
     public async Task<long> SendMessage(string conversationId, Message message)
@@ -38,13 +34,11 @@ public class MessageService : IMessageService
         {
             throw new NotPartOfConversationException($"Sender {message.SenderUsername} is not part of the conversation {conversationId}");
         }
-        try
-        {
-            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, message.Time);
-            await messagesStore.SendMessage(conversationId, message);
-            return message.Time;
-        }
-        catch { throw; }
-
+        await conversationStore.FindConversationById(conversationId, usernames[0]);
+        await Task.WhenAll(
+            conversationStore.UpdateLastModifiedTime(conversationId, usernames, message.Time),
+            messagesStore.SendMessage(conversationId, message)
+        );
+        return message.Time;
     }
 }

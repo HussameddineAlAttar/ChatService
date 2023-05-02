@@ -3,6 +3,7 @@ using ChatService.Exceptions;
 using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Net;
 
 namespace ChatService.Controllers;
@@ -52,8 +53,9 @@ public class ConversationController : ControllerBase
             {
                 if (e is ConversationConflictException)
                 {
-                    var messages = await messageService.EnumerateMessages(conversation.Id);
-                    return Ok(messages);
+                    (var messageResponses, var token) = await messageService.EnumerateMessages(conversation.Id);
+                    var messageTokenResponse = new MessageTokenResponse(messageResponses, conversation.Id, continuationToken: token);
+                    return Ok(messageTokenResponse);
                 }
                 if (e is ProfileNotFoundException notFoundException)
                 {
@@ -73,16 +75,13 @@ public class ConversationController : ControllerBase
     {
         try
         {
-            var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            (var convoResponses, string token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, continuationToken);
+            ConvoResponseWithToken responseWithUri = new(convoResponses, username, limit, lastSeenConversationTime, token);
             return Ok(responseWithUri);
         }
-        catch (Exception e)
+        catch (ProfileNotFoundException)
         {
-            if (e is ProfileNotFoundException)
-            {
-                return NotFound($"Profile with username {username} not found");
-            }
-            throw;
+            return NotFound($"Profile with username {username} not found");
         }
     }
 }

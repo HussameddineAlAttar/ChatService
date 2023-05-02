@@ -18,11 +18,13 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     private readonly Conversation conversation;
     private readonly EnumConvoResponse enumConvoResponse1;
     private readonly EnumConvoResponse enumConvoResponse2;
+    private readonly List<EnumConvoResponse> enumConvoResponseList;
     private readonly ConvoResponseWithToken convoTokenResponse;
 
     private readonly SendMessageRequest sendMessageRequest;
     private readonly EnumMessageResponse enumMessageResponse1;
     private readonly EnumMessageResponse enumMessageResponse2;
+    private readonly List<EnumMessageResponse> enumMessageResponseList;
     private readonly MessageTokenResponse messageTokenResponse;
 
     private readonly List<string> participants;
@@ -53,13 +55,13 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 
         enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "Foo", "Bar"));
         enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "Fizz", "Buzz"));
-        convoTokenResponse = new(new List<EnumConvoResponse>() { enumConvoResponse2, enumConvoResponse1 },
-            username, defaultLimit, defaultLastSeen, defaultToken);
+        enumConvoResponseList = new() { enumConvoResponse2, enumConvoResponse1 };
+        convoTokenResponse = new(enumConvoResponseList, username, defaultLimit, defaultLastSeen, defaultToken);
 
         enumMessageResponse1 = new("Hello World", "Foo", 1000);
         enumMessageResponse2 = new("Bye World", "Bar", 2000);
-        messageTokenResponse = new(new List<EnumMessageResponse>() {enumMessageResponse2, enumMessageResponse1 },
-            conversation.Id, defaultLimit, defaultLastSeen, defaultToken);
+        enumMessageResponseList = new() { enumMessageResponse2, enumMessageResponse1 };
+        messageTokenResponse = new(enumMessageResponseList, conversation.Id, defaultLimit, defaultLastSeen, defaultToken);
     }
 
     private bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
@@ -115,7 +117,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     {
         conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
             .ThrowsAsync(new ConversationConflictException());
-        messageServiceMock.Setup(m => m.EnumerateMessages(conversation.Id, defaultLimit, defaultLastSeen, nullToken)).ReturnsAsync(messageTokenResponse);
+        messageServiceMock.Setup(m => m.EnumerateMessages(conversation.Id, defaultLimit, defaultLastSeen, nullToken)).ReturnsAsync((enumMessageResponseList, defaultToken));
 
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
@@ -173,7 +175,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     public async Task EnumerateConversations()
     {
         conversationServiceMock.Setup(m => m.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
-            .ReturnsAsync(convoTokenResponse);
+            .ReturnsAsync((enumConvoResponseList, defaultToken));
 
         var response = await httpClient.GetAsync($"/api/conversations?username={username}");
         var json = await response.Content.ReadAsStringAsync();

@@ -28,7 +28,7 @@ public static class ProfileStoreExtension
         return missingProfileUsernames;
     }
 
-    public static async Task<List<EnumConvoResponse>> Conversation_to_ConversationResponse(this IProfileStore store, string sender, List<Conversation> conversations)
+    public static async Task<List<EnumConvoResponse>> GetProfilesOfParticipants(this IProfileStore store, string sender, List<Conversation> conversations)
     {
         List<EnumConvoResponse> response = new();
         foreach (var conversation in conversations)

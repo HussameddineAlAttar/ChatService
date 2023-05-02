@@ -5,7 +5,7 @@ namespace ChatService.DTO;
 public record MessageTokenResponse
 {
     public MessageTokenResponse(List<EnumMessageResponse> Messages, string conversationId,
-        int? limit, long? lastSeenMessageTime, string? continuationToken)
+        int? limit = 10, long? lastSeenMessageTime = 1, string? continuationToken = null)
     {
         this.Messages = Messages;
         encodedToken = WebUtility.UrlEncode(continuationToken);
