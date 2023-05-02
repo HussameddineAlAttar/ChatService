@@ -1,8 +1,8 @@
 ﻿namespace ChatService.DTO;
 
-public record EnumMessageResponse
+public record EnumerateMessagesEntry
 {
-    public EnumMessageResponse(string Text, string SenderUsername, long UnixTime)
+    public EnumerateMessagesEntry(string Text, string SenderUsername, long UnixTime)
     {
         this.Text = Text;
         this.SenderUsername = SenderUsername;

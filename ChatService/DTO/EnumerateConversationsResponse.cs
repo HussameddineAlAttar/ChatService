@@ -2,9 +2,9 @@
 
 namespace ChatService.DTO;
 
-public record ConvoResponseWithToken
+public record EnumerateConversationsResponse
 {
-    public ConvoResponseWithToken(List<EnumConvoResponse> Conversations,
+    public EnumerateConversationsResponse(List<EnumerateConversationsEntry> Conversations,
         string username, int? limit, long? lastSeenConversationTime, string? continuationToken)
     {
         this.Conversations = Conversations;
@@ -18,7 +18,7 @@ public record ConvoResponseWithToken
             NextUri = $"/api/conversations?username={username}&limit={limit}&lastSeenConversationTime={lastSeenConversationTime}&continuationToken={encodedToken}";
         }
     }
-    public List<EnumConvoResponse> Conversations { get; }
+    public List<EnumerateConversationsEntry> Conversations { get; }
     public string? encodedToken;
     public string NextUri { get; set; }
 }

@@ -58,12 +58,12 @@ public class MessageController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<MessageTokenResponse>> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
+    public async Task<ActionResult<EnumerateMessagesResponse>> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
         try
         {
             (var messageResponses, var token) = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
-            var messageTokenResponse = new MessageTokenResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
+            var messageTokenResponse = new EnumerateMessagesResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
             return Ok(messageTokenResponse);
         }
         catch (Exception e)

@@ -18,7 +18,7 @@ public class ConversationService : IConversationService
         messagesStore = _messageStore;
     }
 
-    public async Task CreateConversation(CreateConvoRequest convoRequest)
+    public async Task CreateConversation(CreateConversationRequest convoRequest)
     {
         var conversation = new Conversation(convoRequest.Participants);
         var NonExistingProfiles = await profileStore.CheckForNonExistingProfile(conversation.Participants);
@@ -30,7 +30,7 @@ public class ConversationService : IConversationService
         await conversationStore.CreateConversation(conversation);
     }
 
-    public async Task<(List<EnumConvoResponse>, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<(List<EnumerateConversationsEntry>, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         await profileStore.GetProfile(username);
         (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(

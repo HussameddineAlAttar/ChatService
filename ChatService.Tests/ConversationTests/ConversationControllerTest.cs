@@ -14,18 +14,18 @@ namespace ChatService.Tests.ConversationTests;
 
 public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly CreateConvoRequest convoRequest;
+    private readonly CreateConversationRequest convoRequest;
     private readonly Conversation conversation;
-    private readonly EnumConvoResponse enumConvoResponse1;
-    private readonly EnumConvoResponse enumConvoResponse2;
-    private readonly List<EnumConvoResponse> enumConvoResponseList;
-    private readonly ConvoResponseWithToken convoTokenResponse;
+    private readonly EnumerateConversationsEntry enumConvoResponse1;
+    private readonly EnumerateConversationsEntry enumConvoResponse2;
+    private readonly List<EnumerateConversationsEntry> enumConvoResponseList;
+    private readonly EnumerateConversationsResponse convoTokenResponse;
 
     private readonly SendMessageRequest sendMessageRequest;
-    private readonly EnumMessageResponse enumMessageResponse1;
-    private readonly EnumMessageResponse enumMessageResponse2;
-    private readonly List<EnumMessageResponse> enumMessageResponseList;
-    private readonly MessageTokenResponse messageTokenResponse;
+    private readonly EnumerateMessagesEntry enumMessageResponse1;
+    private readonly EnumerateMessagesEntry enumMessageResponse2;
+    private readonly List<EnumerateMessagesEntry> enumMessageResponseList;
+    private readonly EnumerateMessagesResponse messageTokenResponse;
 
     private readonly List<string> participants;
     private readonly string username;
@@ -51,7 +51,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         participants = new List<string> { "Foo", "Bar" };
         sendMessageRequest = new(Guid.NewGuid().ToString(),username, Guid.NewGuid().ToString());
         conversation = new Conversation(participants);
-        convoRequest = new CreateConvoRequest(participants, sendMessageRequest);
+        convoRequest = new CreateConversationRequest(participants, sendMessageRequest);
 
         enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "Foo", "Bar"));
         enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "Fizz", "Buzz"));
@@ -64,12 +64,12 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         messageTokenResponse = new(enumMessageResponseList, conversation.Id, defaultLimit, defaultLastSeen, defaultToken);
     }
 
-    private bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
+    private bool EqualMessageList(List<EnumerateMessagesEntry> list1, List<EnumerateMessagesEntry> list2)
     {
         return list1.SequenceEqual(list2);
     }
 
-    private bool EqualConversationList(List<EnumConvoResponse> list1, List<EnumConvoResponse> list2)
+    private bool EqualConversationList(List<EnumerateConversationsEntry> list1, List<EnumerateConversationsEntry> list2)
     {
         return list1.SequenceEqual(list2);
     }
@@ -86,7 +86,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     //    return false;
     //}
 
-    private bool EqualConvoRequest(CreateConvoRequest request1, CreateConvoRequest request2)
+    private bool EqualConvoRequest(CreateConversationRequest request1, CreateConversationRequest request2)
     {
         bool equalParticipants = request1.Participants.SequenceEqual(request2.Participants);
         var message1 = request1.FirstMessage.message;
@@ -101,12 +101,12 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, convoRequest))))
             .Returns(Task.CompletedTask);
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
         var json = await httpResponse.Content.ReadAsStringAsync();
-        var createConvoResponse = JsonConvert.DeserializeObject<CreateConvoResponse>(json);
+        var createConvoResponse = JsonConvert.DeserializeObject<CreateConversationResponse>(json);
 
         Assert.Equal(HttpStatusCode.Created, httpResponse.StatusCode);
         Assert.Equal(conversation.Id, createConvoResponse.Id);
@@ -115,14 +115,14 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_Conflict()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, convoRequest))))
             .ThrowsAsync(new ConversationConflictException());
         messageServiceMock.Setup(m => m.EnumerateMessages(conversation.Id, defaultLimit, defaultLastSeen, nullToken)).ReturnsAsync((enumMessageResponseList, defaultToken));
 
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
         var json = await httpResponse.Content.ReadAsStringAsync();
-        var messagesWithUri = JsonConvert.DeserializeObject<MessageTokenResponse>(json);
+        var messagesWithUri = JsonConvert.DeserializeObject<EnumerateMessagesResponse>(json);
 
         string expectedUri = $"/api/conversations/{conversation.Id}/messages?limit={defaultLimit}&lastSeenMessageTime={defaultLastSeen}&continuationToken={defaultToken}";
         
@@ -134,7 +134,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_ProfileNotFoundException()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, convoRequest))))
             .ThrowsAsync(new ProfileNotFoundException(new List<string>() {"BarFoo", "BooFar"}));
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
@@ -144,7 +144,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_NotPartOfConversation()
     {
-        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConvoRequest>(request => EqualConvoRequest(request, convoRequest))))
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, convoRequest))))
             .ThrowsAsync(new NotPartOfConversationException());
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
@@ -155,7 +155,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     public async Task CreateConversation_TooManyParticipants()
     {
         var participants = new List<string> { "user1", "user2", "user3" };
-        var request = new CreateConvoRequest(participants, sendMessageRequest);
+        var request = new CreateConversationRequest(participants, sendMessageRequest);
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(request), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
@@ -165,7 +165,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     public async Task CreateConversation_NotEnoughParticipants()
     {
         var participants = new List<string> { "user1"};
-        var request = new CreateConvoRequest(participants, sendMessageRequest);
+        var request = new CreateConversationRequest(participants, sendMessageRequest);
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(request), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
@@ -179,7 +179,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 
         var response = await httpClient.GetAsync($"/api/conversations?username={username}");
         var json = await response.Content.ReadAsStringAsync();
-        var conversationsWithUri = JsonConvert.DeserializeObject<ConvoResponseWithToken>(json);
+        var conversationsWithUri = JsonConvert.DeserializeObject<EnumerateConversationsResponse>(json);
 
         string expectedUri = $"/api/conversations?username={username}&limit={defaultLimit}&lastSeenConversationTime={defaultLastSeen}&continuationToken={defaultToken}";
 

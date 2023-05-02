@@ -2,9 +2,9 @@
 
 namespace ChatService.DTO;
 
-public record CreateConvoResponse
+public record CreateConversationResponse
 {
-    public CreateConvoResponse([Required] string id, long CreatedUnixTime)
+    public CreateConversationResponse([Required] string id, long CreatedUnixTime)
     {
         Id = id;
         this.CreatedUnixTime = CreatedUnixTime;

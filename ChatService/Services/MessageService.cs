@@ -16,13 +16,13 @@ public class MessageService : IMessageService
         conversationStore = _conversationStore;
     }
 
-    public async Task<(List<EnumMessageResponse>, string token)> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
+    public async Task<(List<EnumerateMessagesEntry>, string token)> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
         List<string> usernames = conversationId.SplitToUsernames();
         await conversationStore.FindConversationById(conversationId, usernames[0]); // can use the username of any participant to check if convo exists
         (var messages, var token) = await messagesStore.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
         var messageResponses = messages.Select(message =>
-        new EnumMessageResponse(message.Text, message.SenderUsername, message.Time))
+        new EnumerateMessagesEntry(message.Text, message.SenderUsername, message.Time))
             .ToList();
         return (messageResponses, token);
     }

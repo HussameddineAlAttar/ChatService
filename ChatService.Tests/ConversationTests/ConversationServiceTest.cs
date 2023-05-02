@@ -14,11 +14,11 @@ public class ConversationServiceTest
     private readonly Mock<IMessagesStore> messageStoreMock = new();
     private readonly ConversationService conversationService;
 
-    private readonly CreateConvoRequest convoRequest;
+    private readonly CreateConversationRequest convoRequest;
     private readonly Conversation conversation1;
     private readonly Conversation conversation2;
     private readonly List<Conversation> conversationList;
-    private readonly List<EnumConvoResponse> enumConversationList;
+    private readonly List<EnumerateConversationsEntry> enumConversationList;
 
     private readonly SendMessageRequest sendMessageRequest;
     private readonly List<string> participants1;
@@ -53,14 +53,14 @@ public class ConversationServiceTest
         conversationList = new() { conversation2, conversation1 };
         enumConversationList = new()
         {
-            new EnumConvoResponse(conversation2.Id, conversation2.ModifiedTime, NewBarProfile),
-            new EnumConvoResponse(conversation1.Id, conversation1.ModifiedTime, BarProfile)
+            new EnumerateConversationsEntry(conversation2.Id, conversation2.ModifiedTime, NewBarProfile),
+            new EnumerateConversationsEntry(conversation1.Id, conversation1.ModifiedTime, BarProfile)
         };
 
-        convoRequest = new CreateConvoRequest(participants1, sendMessageRequest);
+        convoRequest = new CreateConversationRequest(participants1, sendMessageRequest);
     }
 
-    private bool EqualConversationList(List<EnumConvoResponse> list1, List<EnumConvoResponse> list2)
+    private bool EqualConversationList(List<EnumerateConversationsEntry> list1, List<EnumerateConversationsEntry> list2)
     {
         for (int i = 0; i < list1.Count; ++i)
         {
