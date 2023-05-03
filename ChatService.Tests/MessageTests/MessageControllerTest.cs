@@ -18,11 +18,11 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
 
     private readonly SendMessageRequest messageRequest;
     private readonly Message message;
-    private readonly EnumMessageResponse enumMessage1;
-    private readonly EnumMessageResponse enumMessage2;
+    private readonly EnumerateMessagesEntry enumMessage1;
+    private readonly EnumerateMessagesEntry enumMessage2;
 
-    private readonly List<EnumMessageResponse> enumMessagesList;
-    private readonly MessageTokenResponse messageTokenResponse;
+    private readonly List<EnumerateMessagesEntry> enumMessagesList;
+    private readonly EnumerateMessagesResponse messageTokenResponse;
     private readonly string conversationId;
 
     private readonly int defaultLimit = 10;
@@ -41,17 +41,16 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
 
         enumMessage1 = new("Hello", "FooBar", 123);
         enumMessage2 = new("Bye", "FizzBuzz", 456);
-        enumMessagesList = new List<EnumMessageResponse>() { enumMessage2, enumMessage1 };
+        enumMessagesList = new List<EnumerateMessagesEntry>() { enumMessage2, enumMessage1 };
         messageTokenResponse = new(enumMessagesList, conversationId, defaultLimit, defaultLastSeen, defaultToken);
         message = messageRequest.message;
-        conversationId = Guid.NewGuid().ToString();
     }
 
     private bool EqualMessage(Message msg1, Message msg2)
     {
         return msg1.Text == msg2.Text && msg1.SenderUsername == msg2.SenderUsername && msg1.Id == msg2.Id;
     }
-    private bool EqualMessageList(List<EnumMessageResponse> list1, List<EnumMessageResponse> list2)
+    private bool EqualMessageList(List<EnumerateMessagesEntry> list1, List<EnumerateMessagesEntry> list2)
     {
         return list1.SequenceEqual(list2);
     }
@@ -104,16 +103,15 @@ public class MessageControllerTest : IClassFixture<WebApplicationFactory<Program
     public async Task EnumerateMessages()
     {
         messageServiceMock.Setup(m => m.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
-            .ReturnsAsync(messageTokenResponse);
+            .ReturnsAsync((enumMessagesList, defaultToken));
 
         var response = await httpClient.GetAsync($"/api/conversations/{conversationId}/messages");
         var json = await response.Content.ReadAsStringAsync();
-        var receivedMessageResponse = JsonConvert.DeserializeObject<MessageTokenResponse>(json);
+        var receivedMessageResponse = JsonConvert.DeserializeObject<EnumerateMessagesResponse>(json);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(messageTokenResponse.NextUri, receivedMessageResponse.NextUri);
         Assert.True(EqualMessageList(messageTokenResponse.Messages, receivedMessageResponse.Messages));
-
     }
 
     [Fact]

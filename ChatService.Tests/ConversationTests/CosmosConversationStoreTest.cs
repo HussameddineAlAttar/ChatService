@@ -96,7 +96,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     public async Task CreateConversation()
     {
         await conversationStore.CreateConversation(conversation);
-        var stored_conversation = await conversationStore.FindConversationById(conversation.Id);
+        var stored_conversation = await conversationStore.FindConversationById(conversation.Id, user1);
         Assert.True(EqualConversations(conversation, stored_conversation));
     }
 
@@ -115,7 +115,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
     {
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
-            await conversationStore.FindConversationById(Guid.NewGuid().ToString());
+            await conversationStore.FindConversationById(Guid.NewGuid().ToString(), "random");
         });
     }
 
@@ -144,7 +144,7 @@ public class CosmosConversationStoreTest : IClassFixture<WebApplicationFactory<P
         await conversationStore.CreateConversation(conversation_modify);
         conversation_modify.ModifiedTime = 987;
         await conversationStore.UpdateLastModifiedTime(conversation_modify.Id, participants_modify, 987);
-        var modifiedConversation = await conversationStore.FindConversationById(conversation_modify.Id);
+        var modifiedConversation = await conversationStore.FindConversationById(conversation_modify.Id, user_enum2);
         Assert.True(EqualConversations(conversation_modify, modifiedConversation));
     }
 

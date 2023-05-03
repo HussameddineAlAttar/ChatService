@@ -3,6 +3,7 @@ using ChatService.Exceptions;
 using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 using System.Net;
 
 namespace ChatService.Controllers;
@@ -26,7 +27,7 @@ public class ConversationController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<CreateConvoResponse>> CreateConversation(CreateConvoRequest request)
+    public async Task<ActionResult<CreateConversationResponse>> CreateConversation(CreateConversationRequest request)
     {
         var conversation = new Conversation(request.Participants);
         using (logger.BeginScope("{ConversationID}", conversation.Id))
@@ -43,7 +44,7 @@ public class ConversationController : ControllerBase
             try
             {
                 await conversationService.CreateConversation(request);
-                var response = new CreateConvoResponse(conversation.Id, conversation.CreatedTime);
+                var response = new CreateConversationResponse(conversation.Id, conversation.CreatedTime);
                 logger.LogInformation("Created a Conversation");
                 telemetryClient.TrackEvent("ConversationCreated");
                 return CreatedAtAction(nameof(CreateConversation), response);
@@ -52,8 +53,9 @@ public class ConversationController : ControllerBase
             {
                 if (e is ConversationConflictException)
                 {
-                    var messages = await messageService.EnumerateMessages(conversation.Id);
-                    return Ok(messages);
+                    (var messageResponses, var token) = await messageService.EnumerateMessages(conversation.Id);
+                    var messageTokenResponse = new EnumerateMessagesResponse(messageResponses, conversation.Id, continuationToken: token);
+                    return Ok(messageTokenResponse);
                 }
                 if (e is ProfileNotFoundException notFoundException)
                 {
@@ -69,20 +71,17 @@ public class ConversationController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ConvoResponseWithToken>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<ActionResult<EnumerateConversationsResponse>> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
         try
         {
-            var responseWithUri = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, WebUtility.UrlEncode(continuationToken));
+            (var convoResponses, string token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, continuationToken);
+            EnumerateConversationsResponse responseWithUri = new(convoResponses, username, limit, lastSeenConversationTime, token);
             return Ok(responseWithUri);
         }
-        catch (Exception e)
+        catch (ProfileNotFoundException)
         {
-            if (e is ProfileNotFoundException)
-            {
-                return NotFound($"Profile with username {username} not found");
-            }
-            throw;
+            return NotFound($"Profile with username {username} not found");
         }
     }
 }

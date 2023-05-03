@@ -4,6 +4,8 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.VisualBasic;
+using Newtonsoft.Json.Linq;
+using System.Collections.Generic;
 
 namespace ChatService.Controllers;
 
@@ -56,11 +58,12 @@ public class MessageController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<MessageTokenResponse>> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
+    public async Task<ActionResult<EnumerateMessagesResponse>> EnumerateMessages(string conversationId, int limit = 10, long lastSeenMessageTime = 1, string? continuationToken = null)
     {
         try
         {
-            var messageTokenResponse = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            (var messageResponses, var token) = await messageService.EnumerateMessages(conversationId, limit, lastSeenMessageTime, continuationToken);
+            var messageTokenResponse = new EnumerateMessagesResponse(messageResponses, conversationId, limit, lastSeenMessageTime, token);
             return Ok(messageTokenResponse);
         }
         catch (Exception e)
@@ -70,6 +73,6 @@ public class MessageController : ControllerBase
                 return NotFound($"Conversation with id {conversationId} not found.");
             }
             throw;
-        }        
+        }
     }
 }

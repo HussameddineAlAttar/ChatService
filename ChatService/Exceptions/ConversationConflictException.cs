@@ -2,10 +2,7 @@
 
 public class ConversationConflictException : Exception
 {
-    public ConversationConflictException() : base()
-    {
-    }
-    public ConversationConflictException(string message) : base(message)
+    public ConversationConflictException(string message = "") : base(message)
     {
     }
 }

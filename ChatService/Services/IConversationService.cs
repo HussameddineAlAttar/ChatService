@@ -6,7 +6,7 @@ namespace ChatService.Services;
 
 public interface IConversationService
 {
-    Task CreateConversation(CreateConvoRequest conversationRequest);
+    Task CreateConversation(CreateConversationRequest conversationRequest);
     Task<long> UpdateLastModifiedTime(string conversationId, long unixTime);
-    Task<ConvoResponseWithToken> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = null, string? continuationToken = null);
+    Task<(List<EnumerateConversationsEntry>, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = null, string? continuationToken = null);
 }

@@ -1,15 +1,9 @@
 ﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage.Entities;
-using ChatService.Storage;
 using Microsoft.Azure.Cosmos;
-using ChatService.Services;
 using System.Net;
-using System.Text;
-using System;
 using ChatService.Extensions;
-using Microsoft.VisualBasic;
-using Microsoft.Azure.Storage;
 
 namespace ChatService.Storage.Cosmos;
 
@@ -44,13 +38,13 @@ public class CosmosConversationStore : IConversationStore
         }
     }
 
-    public async Task<Conversation> FindConversationById(string conversationId)
+    public async Task<Conversation> FindConversationById(string conversationId, string username)
     {
         try
         {
             var entity = await Container.ReadItemAsync<ConversationEntity>(
                 id: conversationId,
-                partitionKey: new PartitionKey(conversationId.SplitToUsernames()[0]),//can use the username of any participant
+                partitionKey: new PartitionKey(username),
                 new ItemRequestOptions
                 {
                     ConsistencyLevel = ConsistencyLevel.Session
@@ -84,7 +78,7 @@ public class CosmosConversationStore : IConversationStore
             MaxItemCount = limit,
             ConsistencyLevel = ConsistencyLevel.Session,
         };
-        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions: queryOptions, continuationToken: WebUtility.UrlDecode(continuationToken));
+        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query, requestOptions: queryOptions, continuationToken: continuationToken);
         var response = await iterator.ReadNextAsync();
 
         List<Conversation> conversations = new();

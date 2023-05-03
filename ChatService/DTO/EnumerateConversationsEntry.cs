@@ -2,9 +2,9 @@
 
 namespace ChatService.DTO;
 
-public record EnumConvoResponse
+public record EnumerateConversationsEntry
 {
-    public EnumConvoResponse(string id, long LastModifiedUnixTime, Profile Recipient)
+    public EnumerateConversationsEntry(string id, long LastModifiedUnixTime, Profile Recipient)
     {
         Id = id;
         this.LastModifiedUnixTime = LastModifiedUnixTime;

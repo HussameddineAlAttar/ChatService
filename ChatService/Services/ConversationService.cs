@@ -18,7 +18,7 @@ public class ConversationService : IConversationService
         messagesStore = _messageStore;
     }
 
-    public async Task CreateConversation(CreateConvoRequest convoRequest)
+    public async Task CreateConversation(CreateConversationRequest convoRequest)
     {
         var conversation = new Conversation(convoRequest.Participants);
         var NonExistingProfiles = await profileStore.CheckForNonExistingProfile(conversation.Participants);
@@ -26,36 +26,23 @@ public class ConversationService : IConversationService
         {
             throw new ProfileNotFoundException(NonExistingProfiles);
         }
-        try
-        {
-            await messagesStore.SendMessage(conversation.Id, convoRequest.FirstMessage.message);
-            await conversationStore.CreateConversation(conversation);
-        }
-        catch { throw; }
+        await messagesStore.SendMessage(conversation.Id, convoRequest.FirstMessage.message);
+        await conversationStore.CreateConversation(conversation);
     }
 
-    public async Task<ConvoResponseWithToken> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
+    public async Task<(List<EnumerateConversationsEntry>, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
-        try
-        {
-            await profileStore.GetProfile(username);
-            (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(
-                username, limit, lastSeenConversationTime, continuationToken);
-            var convResponses = await profileStore.Conversation_to_ConversationResponse(username, conversations);
-            ConvoResponseWithToken responseWithUri = new(convResponses, username, limit, lastSeenConversationTime, token);
-            return responseWithUri;
-        }
-        catch { throw; }
+        await profileStore.GetProfile(username);
+        (List<Conversation> conversations, string? token) = await conversationStore.EnumerateConversations(
+            username, limit, lastSeenConversationTime, continuationToken);
+        var convResponses = await profileStore.GetProfilesOfParticipants(username, conversations);
+        return (convResponses, token);
     }
 
     public async Task<long> UpdateLastModifiedTime(string conversationId, long unixTime)
     {
         List<string> usernames = conversationId.SplitToUsernames();
-        try
-        {
-            await conversationStore.UpdateLastModifiedTime(conversationId, usernames, unixTime);
-            return unixTime;
-        }
-        catch { throw; }
+        await conversationStore.UpdateLastModifiedTime(conversationId, usernames, unixTime);
+        return unixTime;
     }
 }

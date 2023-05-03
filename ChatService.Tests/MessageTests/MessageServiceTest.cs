@@ -20,6 +20,7 @@ public class MessageServiceTest
     private readonly Message message1;
     private readonly Message message2;
     private readonly List<Message> messages;
+    private readonly List<EnumerateMessagesEntry> enumerateMessages;
 
     private readonly int defaultLimit = 10;
     private readonly long defaultLastSeen = 1;
@@ -34,7 +35,24 @@ public class MessageServiceTest
         
         message1 = new Message("FooBar", "Hello World", Guid.NewGuid().ToString(), 123);
         message2 = new Message("NewFooBar", "Goodbye", Guid.NewGuid().ToString(), 456);
-        messages = new List<Message> { message1, message2 };
+        messages = new() { message2, message1 };
+        enumerateMessages = new()
+        {
+            new EnumerateMessagesEntry(message2.Text, message2.SenderUsername, message2.Time),
+            new EnumerateMessagesEntry(message1.Text, message1.SenderUsername, message1.Time)
+        };
+    }
+
+    private bool EqualMessagesList(List<EnumerateMessagesEntry> list1, List<EnumerateMessagesEntry> list2)
+    {
+        for (int i = 0; i < list1.Count; ++i)
+        {
+            if (list1[i].Text != list2[i].Text || list1[i].SenderUsername != list2[i].SenderUsername)
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     [Fact]
@@ -42,11 +60,10 @@ public class MessageServiceTest
     {
         messageStoreMock.Setup(x => x.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((messages, defaultToken));
-        var result = await messageService.EnumerateMessages(conversationId);
-        string expectedUri = $"/api/conversations/{conversationId}/messages?limit={defaultLimit}&lastSeenMessageTime={defaultLastSeen}&continuationToken={defaultToken}";
+        (var messageListResponse, var token) = await messageService.EnumerateMessages(conversationId);
 
-        Assert.Equal(expectedUri, result.NextUri);
-        // assert list of messages are equal
+        Assert.Equal(defaultToken, token);
+        Assert.True(EqualMessagesList(enumerateMessages, messageListResponse));
     }
 
     [Fact]
@@ -54,16 +71,16 @@ public class MessageServiceTest
     {
         messageStoreMock.Setup(x => x.EnumerateMessages(conversationId, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Message>() { }, nullToken));
-        var result = await messageService.EnumerateMessages(conversationId);
+        (var messageListResponse, var token) = await messageService.EnumerateMessages(conversationId);
 
-        Assert.True(string.IsNullOrWhiteSpace(result.NextUri));
-        Assert.Empty(result.Messages);
+        Assert.True(string.IsNullOrWhiteSpace(token));
+        Assert.Empty(messageListResponse);
     }
 
     [Fact]
     public async Task EnumerateMessages_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.FindConversationById(conversationId)).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId, usernames[0])).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
             await messageService.EnumerateMessages(conversationId);
@@ -93,11 +110,12 @@ public class MessageServiceTest
     [Fact]
     public async Task SendMessage_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversationId, usernames, It.IsAny<long>())).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId, usernames[0])).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
             await messageService.SendMessage(conversationId, message1);
         });
         messageStoreMock.Verify(x => x.SendMessage(conversationId, message1), Times.Never);
+        conversationStoreMock.Verify(x => x.UpdateLastModifiedTime(conversationId, usernames, It.IsAny<long>()), Times.Never);
     }
 }

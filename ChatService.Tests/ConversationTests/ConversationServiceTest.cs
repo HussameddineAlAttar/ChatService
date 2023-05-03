@@ -14,11 +14,11 @@ public class ConversationServiceTest
     private readonly Mock<IMessagesStore> messageStoreMock = new();
     private readonly ConversationService conversationService;
 
-    private readonly CreateConvoRequest convoRequest;
+    private readonly CreateConversationRequest convoRequest;
     private readonly Conversation conversation1;
     private readonly Conversation conversation2;
     private readonly List<Conversation> conversationList;
-    private readonly List<EnumConvoResponse> enumConversationList;
+    private readonly List<EnumerateConversationsEntry> enumConversationList;
 
     private readonly SendMessageRequest sendMessageRequest;
     private readonly List<string> participants1;
@@ -53,14 +53,14 @@ public class ConversationServiceTest
         conversationList = new() { conversation2, conversation1 };
         enumConversationList = new()
         {
-            new EnumConvoResponse(conversation2.Id, conversation2.ModifiedTime, NewBarProfile),
-            new EnumConvoResponse(conversation1.Id, conversation1.ModifiedTime, BarProfile)
+            new EnumerateConversationsEntry(conversation2.Id, conversation2.ModifiedTime, NewBarProfile),
+            new EnumerateConversationsEntry(conversation1.Id, conversation1.ModifiedTime, BarProfile)
         };
 
-        convoRequest = new CreateConvoRequest(participants1, sendMessageRequest);
+        convoRequest = new CreateConversationRequest(participants1, sendMessageRequest);
     }
 
-    private bool EqualConversationList(List<EnumConvoResponse> list1, List<EnumConvoResponse> list2)
+    private bool EqualConversationList(List<EnumerateConversationsEntry> list1, List<EnumerateConversationsEntry> list2)
     {
         for (int i = 0; i < list1.Count; ++i)
         {
@@ -120,11 +120,10 @@ public class ConversationServiceTest
 
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((conversationList, defaultToken));
-        string expectedUri = $"/api/conversations?username={username}&limit={defaultLimit}&lastSeenConversationTime={defaultLastSeen}&continuationToken={defaultToken}";
-        var conversationTokenResponse = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
+        (var conversationListResponse, var token) = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
 
-        Assert.Equal(expectedUri, conversationTokenResponse.NextUri);
-        Assert.True(EqualConversationList(enumConversationList, conversationTokenResponse.Conversations));
+        Assert.Equal(defaultToken, token);
+        Assert.True(EqualConversationList(enumConversationList, conversationListResponse));
     }
 
     [Fact]
@@ -133,10 +132,10 @@ public class ConversationServiceTest
         profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, "first", "last"));
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Conversation>() { }, nullToken));
-        var conversationTokenResponse = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
+        (var conversationListResponse, var token) = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
 
-        Assert.True(string.IsNullOrWhiteSpace(conversationTokenResponse.NextUri));
-        Assert.Empty(conversationTokenResponse.Conversations);
+        Assert.True(string.IsNullOrWhiteSpace(token));
+        Assert.Empty(conversationListResponse);
     }
 
     [Fact]

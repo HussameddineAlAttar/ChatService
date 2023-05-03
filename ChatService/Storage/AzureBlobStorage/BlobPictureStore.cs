@@ -21,21 +21,14 @@ public class BlobPictureStore : IImageStore
         {
             throw new ArgumentNullException("Id cannot be null or empty");
         }
-        try
+        BlobClient blobClient = Container.GetBlobClient(id + ".png");
+        if (!await blobClient.ExistsAsync())
         {
-            BlobClient blobClient = Container.GetBlobClient(id + ".png");
-            if (!await blobClient.ExistsAsync())
-            {
-                throw new ImageNotFoundException($"Image of id {id} not found.");
-            }
-            BlobDownloadResult content = await blobClient.DownloadContentAsync();
-            var stream = content.Content.ToStream();
-            return stream;
+            throw new ImageNotFoundException($"Image of id {id} not found.");
         }
-        catch
-        {
-            throw;
-        }
+        BlobDownloadResult content = await blobClient.DownloadContentAsync();
+        var stream = content.Content.ToStream();
+        return stream;
     }
 
 
@@ -55,19 +48,12 @@ public class BlobPictureStore : IImageStore
         {
             throw new ArgumentNullException("Id cannot be null or empty");
         }
-        try
+        BlobClient blobClient = Container.GetBlobClient(id + ".png");
+        if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
         {
-            BlobClient blobClient = Container.GetBlobClient(id + ".png");
-            if (!await blobClient.ExistsAsync()) // if {id}.png doesn't exist
-            {
-                throw new ImageNotFoundException($"Image of id {id} not found.");
-            }
-            await blobClient.DeleteAsync();
-            return;
+            throw new ImageNotFoundException($"Image of id {id} not found.");
         }
-        catch
-        {
-            throw;
-        }
+        await blobClient.DeleteAsync();
+        return;
     }
 }

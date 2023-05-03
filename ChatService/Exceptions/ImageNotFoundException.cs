@@ -2,10 +2,5 @@
 
 public class ImageNotFoundException : Exception
 {
-    public ImageNotFoundException() : base()
-    {
-    }
-    public ImageNotFoundException(string message) : base(message)
-    {
-    }
+    public ImageNotFoundException(string message = "") : base(message) { }
 }

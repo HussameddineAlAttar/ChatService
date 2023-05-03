@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ChatService.Extensions;
+using System.ComponentModel.DataAnnotations;
 
 namespace ChatService.DTO;
 
@@ -6,9 +7,8 @@ public record Conversation
 {
     public Conversation([Required] List<string> Participants)
     {
-        Participants.Sort();
         this.Participants = Participants;
-        Id = string.Join("_", Participants);
+        Id = Participants.JoinToConversationId();
         CreatedTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         ModifiedTime = CreatedTime;
     }
