@@ -74,17 +74,6 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         return list1.SequenceEqual(list2);
     }
 
-    //private bool EqualConvoRequest(CreateConvoRequest request1, CreateConvoRequest request2)
-    //{
-    //    bool equalParticipants = request1.Participants.SequenceEqual(request2.Participants);
-    //    bool equalMessages = request1.FirstMessage.message == request2.FirstMessage.message;
-    //    if(equalParticipants && equalMessages)
-    //    {
-    //        return true;
-    //    }
-    //    Debugger.Launch();
-    //    return false;
-    //}
 
     private bool EqualConvoRequest(CreateConversationRequest request1, CreateConversationRequest request2)
     {
