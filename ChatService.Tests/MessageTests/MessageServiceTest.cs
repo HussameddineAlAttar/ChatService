@@ -15,7 +15,13 @@ public class MessageServiceTest
     private readonly MessageService messageService;
 
     private readonly string conversationId;
+    private readonly string conversationIdForNotPart;
+
     private readonly List<string> usernames;
+    private readonly List<string> usernamesForNotPart;
+
+    private readonly Conversation conversation;
+    private readonly Conversation conversationForNotPart;
 
     private readonly Message message1;
     private readonly Message message2;
@@ -30,8 +36,13 @@ public class MessageServiceTest
     public MessageServiceTest()
     {
         messageService = new MessageService(messageStoreMock.Object, conversationStoreMock.Object);
-        conversationId = "FooBar_NewFooBar";
-        usernames = conversationId.SplitToUsernames();
+        usernames = new() { "FooBar", "NewFooBar" };
+        conversation = new(usernames);
+        conversationId = conversation.Id;
+
+        usernamesForNotPart = new() { "User1", "User2" };
+        conversationForNotPart = new(usernamesForNotPart);
+        conversationIdForNotPart = conversationForNotPart.Id;
         
         message1 = new Message("FooBar", "Hello World", Guid.NewGuid().ToString(), 123);
         message2 = new Message("NewFooBar", "Goodbye", Guid.NewGuid().ToString(), 456);
@@ -80,7 +91,7 @@ public class MessageServiceTest
     [Fact]
     public async Task EnumerateMessages_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.FindConversationById(conversationId, usernames[0])).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId)).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
             await messageService.EnumerateMessages(conversationId);
@@ -91,6 +102,7 @@ public class MessageServiceTest
     [Fact]
     public async Task SendMessage()
     {
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId)).ReturnsAsync(conversation);
         messageStoreMock.Setup(x => x.SendMessage(conversationId, message1)).Returns(Task.CompletedTask);
         conversationStoreMock.Setup(x => x.UpdateLastModifiedTime(conversationId, usernames, message1.Time)).Returns(Task.CompletedTask);
 
@@ -101,16 +113,17 @@ public class MessageServiceTest
     [Fact]
     public async Task SendMessage_SenderNotPartOfConversation()
     {
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationIdForNotPart)).ReturnsAsync(conversationForNotPart);
         await Assert.ThrowsAsync<NotPartOfConversationException>(async () =>
         {
-            await messageService.SendMessage("User1_User2", message1);
+            await messageService.SendMessage(conversationIdForNotPart, message1);
         });
     }
 
     [Fact]
     public async Task SendMessage_ConversationNotFound()
     {
-        conversationStoreMock.Setup(x => x.FindConversationById(conversationId, usernames[0])).ThrowsAsync(new ConversationNotFoundException());
+        conversationStoreMock.Setup(x => x.FindConversationById(conversationId)).ThrowsAsync(new ConversationNotFoundException());
         await Assert.ThrowsAsync<ConversationNotFoundException>(async () =>
         {
             await messageService.SendMessage(conversationId, message1);

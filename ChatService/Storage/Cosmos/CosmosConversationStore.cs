@@ -38,19 +38,22 @@ public class CosmosConversationStore : IConversationStore
         }
     }
 
-    public async Task<Conversation> FindConversationById(string conversationId, string username)
+    public async Task<Conversation> FindConversationById(string conversationId)
     {
         try
         {
-            var entity = await Container.ReadItemAsync<ConversationEntity>(
-                id: conversationId,
-                partitionKey: new PartitionKey(username),
-                new ItemRequestOptions
-                {
-                    ConsistencyLevel = ConsistencyLevel.Session
-                }
-            );
-            return ToConversation(entity);
+            var query = new QueryDefinition("SELECT TOP 1 * FROM c WHERE c.id = @ID")
+                .WithParameter("@ID", conversationId);
+
+            var iterator = Container.GetItemQueryIterator<ConversationEntity>(query);
+
+            var results = await iterator.ReadNextAsync();
+
+            if(results.Count == 0)
+            {
+                throw new ConversationNotFoundException($"Conversation with id {conversationId} not found.");
+            }
+            return ToConversation(results.FirstOrDefault());
         }
         catch (CosmosException e)
         {
