@@ -3,7 +3,6 @@ using ChatService.Exceptions;
 using ChatService.Storage.Entities;
 using Microsoft.Azure.Cosmos;
 using System.Net;
-using ChatService.Extensions;
 
 namespace ChatService.Storage.Cosmos;
 
@@ -38,28 +37,21 @@ public class CosmosConversationStore : IConversationStore
         }
     }
 
-    public async Task<Conversation> FindConversationById(string conversationId, string username)
+    public async Task<Conversation> FindConversationById(string conversationId)
     {
-        try
+        var query = new QueryDefinition("SELECT TOP 1 * FROM c WHERE c.id = @ID")
+            .WithParameter("@ID", conversationId);
+
+        var iterator = Container.GetItemQueryIterator<ConversationEntity>(query);
+
+        var results = await iterator.ReadNextAsync();
+
+        if(results.Count == 0)
         {
-            var entity = await Container.ReadItemAsync<ConversationEntity>(
-                id: conversationId,
-                partitionKey: new PartitionKey(username),
-                new ItemRequestOptions
-                {
-                    ConsistencyLevel = ConsistencyLevel.Session
-                }
-            );
-            return ToConversation(entity);
+            throw new ConversationNotFoundException($"Conversation with id {conversationId} not found.");
         }
-        catch (CosmosException e)
-        {
-            if (e.StatusCode == HttpStatusCode.NotFound)
-            {
-                throw new ConversationNotFoundException($"Conversation with id {conversationId} not found.");
-            }
-            throw;
-        }
+        return ToConversation(results.FirstOrDefault());
+
     }
 
     public async Task<(List<Conversation> conversations, string? continuationToken)> EnumerateConversations(

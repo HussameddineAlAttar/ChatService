@@ -7,10 +7,18 @@ public record Conversation
 {
     public Conversation([Required] List<string> Participants)
     {
+        // sorting the participants for consistency
+        Participants.Sort();
         this.Participants = Participants;
-        Id = Participants.JoinToConversationId();
+        Id = CreateConversationId(Participants);
         CreatedTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         ModifiedTime = CreatedTime;
+    }
+
+    public string CreateConversationId(List<string> usernames)
+    {
+        usernames.Sort();
+        return string.Join("_", usernames);
     }
 
     public List<string> Participants { get; init; }
