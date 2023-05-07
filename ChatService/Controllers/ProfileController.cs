@@ -3,6 +3,7 @@ using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.ApplicationInsights;
+using System.Diagnostics;
 
 namespace ChatService.Controllers;
 
@@ -28,7 +29,9 @@ public class ProfileController : ControllerBase
         {
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 var profile = await profileInterface.GetProfile(username);
+                telemetryClient.TrackMetric("ProfileStore.GetProfile.Time", stopwatch.ElapsedMilliseconds);
                 return Ok(profile);
             }
             catch (Exception e)
@@ -49,9 +52,13 @@ public class ProfileController : ControllerBase
         {
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 await profileInterface.CreateProfile(profile);
+
+                telemetryClient.TrackMetric("ProfileStore.AddProfile.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Created a Profile");
                 telemetryClient.TrackEvent("ProfileCreated");
+
                 return CreatedAtAction(nameof(GetProfile), new { username = profile.Username }, profile);
             }
             catch (Exception e)

@@ -4,6 +4,7 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 
 namespace ChatService.Controllers;
@@ -43,17 +44,24 @@ public class ConversationController : ControllerBase
             }
             try
             {
+                var stopwatch = Stopwatch.StartNew();
                 await conversationService.CreateConversation(request);
-                var response = new CreateConversationResponse(conversation.Id, conversation.CreatedTime);
+
+                telemetryClient.TrackMetric("ConversationStore.CreateConversation.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Created a Conversation");
                 telemetryClient.TrackEvent("ConversationCreated");
+
+                var response = new CreateConversationResponse(conversation.Id, conversation.CreatedTime);
                 return CreatedAtAction(nameof(CreateConversation), response);
             }
             catch (Exception e)
             {
                 if (e is ConversationConflictException)
                 {
+                    var stopwatch = Stopwatch.StartNew();
                     (var messageResponses, var token) = await messageService.EnumerateMessages(conversation.Id);
+                    telemetryClient.TrackMetric("MessageStore.GetMessages.Time", stopwatch.ElapsedMilliseconds);
+
                     var messageTokenResponse = new EnumerateMessagesResponse(messageResponses, conversation.Id, continuationToken: token);
                     return Ok(messageTokenResponse);
                 }
@@ -75,7 +83,9 @@ public class ConversationController : ControllerBase
     {
         try
         {
+            var stopwatch = Stopwatch.StartNew();
             (var convoResponses, string token) = await conversationService.EnumerateConversations(username, limit, lastSeenConversationTime, continuationToken);
+            telemetryClient.TrackMetric("ConversationStore.GetConversations.Time", stopwatch.ElapsedMilliseconds);
             EnumerateConversationsResponse responseWithUri = new(convoResponses, username, limit, lastSeenConversationTime, token);
             return Ok(responseWithUri);
         }
