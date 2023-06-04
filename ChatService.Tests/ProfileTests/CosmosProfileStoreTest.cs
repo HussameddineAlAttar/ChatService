@@ -36,7 +36,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     }
 
     [Fact]
-    public async Task GetEmptyProfile() 
+    public async Task GetEmptyProfile()
     {
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
         {
@@ -86,7 +86,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await profileStore.CreateProfile(new Profile(username, firstname, lastname));
+            await profileStore.CreateProfile(new Profile(username, username + "@email.com", firstname, lastname));
         });
     }
 

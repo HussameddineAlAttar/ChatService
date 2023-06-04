@@ -129,7 +129,7 @@ public class ConversationServiceTest
     [Fact]
     public async Task EnumerateConversations_NoConversations()
     {
-        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, "first", "last"));
+        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, username + "email.com", "first", "last"));
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Conversation>() { }, nullToken));
         (var conversationListResponse, var token) = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);

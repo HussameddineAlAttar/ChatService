@@ -21,6 +21,7 @@ public class CosmosProfileStore : IProfileStore
     {
         if (profile == null ||
             string.IsNullOrWhiteSpace(profile.Username) ||
+            string.IsNullOrWhiteSpace(profile.Email) ||
             string.IsNullOrWhiteSpace(profile.FirstName) ||
             string.IsNullOrWhiteSpace(profile.LastName)
            )
@@ -35,7 +36,7 @@ public class CosmosProfileStore : IProfileStore
         {
             if (e.StatusCode == HttpStatusCode.Conflict)
             {
-                throw new ProfileConflictException($"Profile with username {profile.Username} already taken.");
+                throw new ProfileConflictException($"Username {profile.Username} is taken.");
             }
             throw;
         }
@@ -69,6 +70,22 @@ public class CosmosProfileStore : IProfileStore
         }
     }
 
+    public async Task<Profile> GetProfileByEmail(string email)
+    {
+        var query = new QueryDefinition("SELECT TOP 1 * FROM p WHERE p.email = @EMAIL")
+            .WithParameter("@EMAIL", email);
+
+        var iterator = Container.GetItemQueryIterator<ProfileEntity>(query);
+
+        var results = await iterator.ReadNextAsync();
+
+        if (results.Count == 0)
+        {
+            throw new ProfileNotFoundException($"Profile with email {email} not found.");
+        }
+        return ToProfile(results.FirstOrDefault());
+    }
+
     public async Task DeleteProfile(string username)
     {
         if (string.IsNullOrWhiteSpace(username))
@@ -97,15 +114,16 @@ public class CosmosProfileStore : IProfileStore
         return new ProfileEntity(
             partitionKey: profile.Username,
             id: profile.Username,
+            profile.Email,
             profile.FirstName,
             profile.LastName,
             profile.ProfilePictureId
-        ); ;
+        );
     }
 
     private static Profile ToProfile(ProfileEntity entity)
     {
-        Profile toReturn = new(entity.id, entity.firstName, entity.lastName, entity.profilePictureID);
+        Profile toReturn = new(entity.id, entity.email, entity.firstName, entity.lastName, entity.profilePictureID);
         return toReturn;
     }
 }
