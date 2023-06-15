@@ -26,7 +26,9 @@ public class ImageController : ControllerBase
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
     {
         var stopwatch = Stopwatch.StartNew();
-        var imgID = await imageService.UploadImage(request);
+        await imageService.UploadImage(request);
+
+        string imgID = request.username;
 
         telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
         logger.LogInformation("Uploaded image {ImageID}", imgID);
@@ -35,15 +37,15 @@ public class ImageController : ControllerBase
         return CreatedAtAction(nameof(UploadImage), response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult> DownloadImage(string id)
+    [HttpGet("{username}")]
+    public async Task<ActionResult> DownloadImage(string username)
     {
-        using (logger.BeginScope("{ImageID}", id))
+        using (logger.BeginScope("{ImageID}", username))
         {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var imageBytes = await imageService.DownloadImage(id);
+                var imageBytes = await imageService.DownloadImage(username);
 
                 telemetryClient.TrackMetric("ImageStore.GetImage.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Downloaded image");
@@ -54,7 +56,7 @@ public class ImageController : ControllerBase
             {
                 if (e is ImageNotFoundException)
                 {
-                    return NotFound($"Image of id {id} not found.");
+                    return NotFound($"Image for user {username} not found.");
                 }
                 throw;
             }

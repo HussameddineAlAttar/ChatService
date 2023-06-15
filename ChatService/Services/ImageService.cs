@@ -25,8 +25,8 @@ public class ImageService : IImageService
         return contentBytes;
     }
 
-    public async Task<string> UploadImage([FromForm] UploadImageRequest request)
+    public async Task UploadImage([FromForm] UploadImageRequest request)
     {
-        return await imageStore.UploadImage(request);
+        await imageStore.UploadImage(request);
     }
 }

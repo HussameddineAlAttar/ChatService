@@ -1,31 +1,22 @@
-﻿using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using ChatService.Configuration;
-using ChatService.DTO;
+﻿using ChatService.DTO;
 using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatService.Tests.ImageTests;
 
 public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
 {
     private readonly IImageStore blobStorage;
+    private readonly string username;
 
 
     public BlobStorageTest(WebApplicationFactory<Program> factory)
     {
         blobStorage = factory.Services.GetRequiredService<IImageStore>();
+        username = "FooBar" + Guid.NewGuid().ToString();
     }
 
     public Task InitializeAsync()
@@ -72,10 +63,10 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file);
-        var response = await blobStorage.UploadImage(request);
+        UploadImageRequest request = new(file, username);
+        await blobStorage.UploadImage(request);
 
-        Stream imageStream = await blobStorage.DownloadImage(response);
+        Stream imageStream = await blobStorage.DownloadImage(username);
 
         using (var expectedContent = new MemoryStream())
         using (var actualContent = new MemoryStream())
@@ -85,7 +76,7 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             Assert.Equal(expectedContent.ToArray(), actualContent.ToArray());
         }
 
-        await blobStorage.DeleteImage(response);
+        await blobStorage.DeleteImage(username);
     }
 
     [Theory]
@@ -101,15 +92,13 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file);
-        var response = await blobStorage.UploadImage(request);
-
-
-        await blobStorage.DeleteImage(response);
+        UploadImageRequest request = new(file, username);
+        await blobStorage.UploadImage(request);
+        await blobStorage.DeleteImage(username);
 
         await Assert.ThrowsAsync<ImageNotFoundException>(async () =>
         {
-            await blobStorage.DownloadImage(response);
+            await blobStorage.DownloadImage(username);
         });
 
     }
