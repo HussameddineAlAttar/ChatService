@@ -18,7 +18,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     public CosmosProfileStoreTest(WebApplicationFactory<Program> factory)
     {
         profileStore = factory.Services.GetRequiredService<IProfileStore>();
-        testProfile = new Profile("randomUsernameForTest", "FooTest", "BarTest", pictureID);
+        testProfile = new Profile("randomUsernameForTest", "Foo@email.com", Guid.NewGuid().ToString(), "FooTest", "BarTest");
     }
 
     public Task InitializeAsync()
@@ -63,7 +63,7 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task AddProfile_AlreadyExists()
     {
-        Profile alreadyExists = new Profile(idForAlreadyExists, idForAlreadyExists, idForAlreadyExists, idForAlreadyExists);
+        Profile alreadyExists = new Profile(idForAlreadyExists, idForAlreadyExists + "@email.com", idForAlreadyExists, idForAlreadyExists, idForAlreadyExists);
         await profileStore.CreateProfile(alreadyExists);
 
         await Assert.ThrowsAsync<ProfileConflictException>(async () =>
@@ -86,14 +86,14 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     {
         await Assert.ThrowsAsync<ArgumentException>(async () =>
         {
-            await profileStore.CreateProfile(new Profile(username, username + "@email.com", firstname, lastname));
+            await profileStore.CreateProfile(new Profile(username, username + "@email.com", Guid.NewGuid().ToString(), firstname, lastname));
         });
     }
 
     [Fact]
     public async Task DeleteProfile()
     {
-        Profile toDeleteProfile = new(idToDelete, idToDelete, idToDelete, idToDelete);
+        Profile toDeleteProfile = new(idToDelete, idToDelete, Guid.NewGuid().ToString(), idToDelete, idToDelete);
         await profileStore.CreateProfile(toDeleteProfile);
         await profileStore.DeleteProfile(toDeleteProfile.Username);
 

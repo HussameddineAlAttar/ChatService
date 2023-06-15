@@ -98,7 +98,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [InlineData("foobar", "Foo", " ")]
     public async Task AddProfile_InvalidArgs(string username, string firstname, string lastname)
     {
-        Profile profile = new(username, firstname, lastname, Guid.NewGuid().ToString());
+        Profile profile = new(username, username + "@email.com", Guid.NewGuid().ToString(), firstname, lastname);
         var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(profile), Encoding.Default, "application/json"));
 

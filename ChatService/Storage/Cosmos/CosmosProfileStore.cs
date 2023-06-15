@@ -115,15 +115,15 @@ public class CosmosProfileStore : IProfileStore
             partitionKey: profile.Username,
             id: profile.Username,
             profile.Email,
+            profile.Password,
             profile.FirstName,
-            profile.LastName,
-            profile.ProfilePictureId
+            profile.LastName
         );
     }
 
     private static Profile ToProfile(ProfileEntity entity)
     {
-        Profile toReturn = new(entity.id, entity.email, entity.firstName, entity.lastName, entity.profilePictureID);
+        Profile toReturn = new(entity.id, entity.email, entity.password, entity.firstName, entity.lastName);
         return toReturn;
     }
 }

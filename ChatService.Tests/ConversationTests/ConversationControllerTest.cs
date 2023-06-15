@@ -30,6 +30,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     private readonly List<string> participants;
     private readonly string username;
     private readonly string email;
+    private readonly string password;
 
     private readonly HttpClient httpClient;
     private readonly Mock<IConversationService> conversationServiceMock = new();
@@ -50,13 +51,14 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 
         username = "Foo";
         email = "FooBar@email.com";
+        password = Guid.NewGuid().ToString();
         participants = new List<string> { "Foo", "Bar" };
         sendMessageRequest = new(Guid.NewGuid().ToString(), username, Guid.NewGuid().ToString());
         conversation = new Conversation(participants);
         convoRequest = new CreateConversationRequest(participants, sendMessageRequest);
 
-        enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "FooBar@email.com", "Foo", "Bar"));
-        enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "FizzBuzz@email.com", "Fizz", "Buzz"));
+        enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "FooBar@email.com", password, "Foo", "Bar"));
+        enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "FizzBuzz@email.com", password, "Fizz", "Buzz"));
         enumConvoResponseList = new() { enumConvoResponse2, enumConvoResponse1 };
         convoTokenResponse = new(enumConvoResponseList, username, defaultLimit, defaultLastSeen, defaultToken);
 

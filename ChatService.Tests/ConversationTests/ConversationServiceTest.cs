@@ -39,9 +39,9 @@ public class ConversationServiceTest
     {
         conversationService = new ConversationService(conversationStoreMock.Object, profileStoreMock.Object, messageStoreMock.Object);
         username = "Foo";
-        FooProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
-        BarProfile = new Profile("Bar", "FirstName", "LastName", Guid.NewGuid().ToString());
-        NewBarProfile = new Profile("NewBar", "FirstName", "LastName", Guid.NewGuid().ToString());
+        FooProfile = new Profile(username, username+"email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
+        BarProfile = new Profile("Bar", "bar@email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
+        NewBarProfile = new Profile("NewBar", "NewBar@email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
 
         sendMessageRequest = new(Guid.NewGuid().ToString(), username, "Hello World");
         message = sendMessageRequest.message;
@@ -129,7 +129,7 @@ public class ConversationServiceTest
     [Fact]
     public async Task EnumerateConversations_NoConversations()
     {
-        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, username + "email.com", "first", "last"));
+        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, username + "email.com",Guid.NewGuid().ToString(), "first", "last"));
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Conversation>() { }, nullToken));
         (var conversationListResponse, var token) = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);
