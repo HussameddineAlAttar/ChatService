@@ -63,8 +63,8 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file, username);
-        await blobStorage.UploadImage(request);
+        UploadImageRequest request = new(file);
+        await blobStorage.UploadImage(request, username);
 
         Stream imageStream = await blobStorage.DownloadImage(username);
 
@@ -92,8 +92,8 @@ public class BlobStorageTest : IClassFixture<WebApplicationFactory<Program>>, IA
             ContentType = "image/" + type
         };
 
-        UploadImageRequest request = new(file, username);
-        await blobStorage.UploadImage(request);
+        UploadImageRequest request = new(file);
+        await blobStorage.UploadImage(request, username);
         await blobStorage.DeleteImage(username);
 
         await Assert.ThrowsAsync<ImageNotFoundException>(async () =>

@@ -1,3 +1,3 @@
 ﻿namespace ChatService.DTO;
 
-public record UploadImageRequest(IFormFile File, string username);
+public record UploadImageRequest(IFormFile File);

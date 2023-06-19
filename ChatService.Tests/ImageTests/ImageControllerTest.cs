@@ -29,25 +29,25 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
         }).CreateClient();
     }
 
-    //[Fact]
-    //public async Task UploadValidImage()
-    //{
-    //    Stream imageStream = new MemoryStream();
-    //    var testUploadImageResponse = new UploadImageResponse(testID);
+    [Fact]
+    public async Task UploadValidImage()
+    {
+        Stream imageStream = new MemoryStream();
+        var testUploadImageResponse = new UploadImageResponse(testID);
 
-    //    var request = new UploadImageRequest(new FormFile(null, 0, 0, "testImage", "testImage.jpg"), testID);
+        var request = new UploadImageRequest(new FormFile(null, 0, 0, "testImage", "testImage.jpg"));
 
-    //    var fileToUpload = new StreamContent(imageStream);
-    //    dataContent.Add(fileToUpload, "File", "image.png");
-    //    dataContent.Add(new StringContent("username"), testID);
+        var fileToUpload = new StreamContent(imageStream);
+        dataContent.Add(fileToUpload, "File", "image.png");
+        dataContent.Add(new StringContent("username"), testID);
 
-    //    var clientResponse = await httpClient.PostAsync("/api/images", dataContent);
-    //    Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
+        var clientResponse = await httpClient.PostAsync($"/api/images/{testID}", dataContent);
+        Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
 
-    //    var json = await clientResponse.Content.ReadAsStringAsync();
-    //    UploadImageResponse receivedResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
-    //    Assert.Equal(testUploadImageResponse, receivedResponse);
-    //}
+        var json = await clientResponse.Content.ReadAsStringAsync();
+        UploadImageResponse receivedResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
+        Assert.Equal(testUploadImageResponse, receivedResponse);
+    }
 
 
     [Fact]

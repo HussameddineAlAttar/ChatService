@@ -32,9 +32,9 @@ public class BlobPictureStore : IImageStore
     }
 
 
-    public async Task UploadImage(UploadImageRequest request)
+    public async Task UploadImage(UploadImageRequest request, string username)
     {
-        string pictureID = request.username;
+        string pictureID = username;
         var blobName = $"{pictureID}.png";
         var blobClient = Container.GetBlobClient(blobName);
         var file = request.File;

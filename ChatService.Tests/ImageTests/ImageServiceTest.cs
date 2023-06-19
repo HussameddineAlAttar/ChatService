@@ -30,7 +30,7 @@ public class ImageServiceTest
             Headers = new HeaderDictionary(),
             ContentType = "image/png"
         };
-        uploadImageRequest = new(file, imageId);
+        uploadImageRequest = new(file);
         imageId = Guid.NewGuid().ToString();
     }
 

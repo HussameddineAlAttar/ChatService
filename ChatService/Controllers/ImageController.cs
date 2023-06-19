@@ -8,7 +8,7 @@ using System.Diagnostics;
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("api/images")]
+[Route("api/images/{username}")]
 public class ImageController : ControllerBase
 {
     private readonly IImageService imageService;
@@ -23,12 +23,12 @@ public class ImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
+    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
         var stopwatch = Stopwatch.StartNew();
-        await imageService.UploadImage(request);
+        await imageService.UploadImage(request, username);
 
-        string imgID = request.username;
+        string imgID = username;
 
         telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
         logger.LogInformation("Uploaded image {ImageID}", imgID);
@@ -37,7 +37,7 @@ public class ImageController : ControllerBase
         return CreatedAtAction(nameof(UploadImage), response);
     }
 
-    [HttpGet("{username}")]
+    [HttpGet]
     public async Task<ActionResult> DownloadImage(string username)
     {
         using (logger.BeginScope("{ImageID}", username))

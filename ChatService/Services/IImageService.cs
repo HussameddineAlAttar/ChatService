@@ -5,6 +5,6 @@ namespace ChatService.Services;
 
 public interface IImageService
 {
-    Task UploadImage([FromForm] UploadImageRequest request);
+    Task UploadImage([FromForm] UploadImageRequest request, string username);
     Task<byte[]> DownloadImage(string id);
 }
