@@ -1,8 +1,7 @@
 # ChatAppBackend API Documentation
-## Profile API Documentation
-
-This README file provides documentation for the Profile API endpoints. Below you will find information about the available endpoints, their request parameters, and response parameters.
-
+<details>
+<summary><h2>Profile API Documentation</h2></summary>
+  
 ## GetProfile
 
 Retrieves the profile information for a given username.
@@ -57,3 +56,4 @@ Creates a new profile.
 **Failed Request Responses:**
 - Status: 409 Conflict
   - Body: Cannot create profile.\n{error message}
+</details>
