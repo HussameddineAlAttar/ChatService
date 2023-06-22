@@ -4,6 +4,7 @@ using ChatService.Exceptions;
 using ChatService.Storage;
 using Microsoft.ApplicationInsights;
 using System.Diagnostics;
+using ChatService.Extensions;
 
 namespace ChatService.Controllers;
 
@@ -71,6 +72,8 @@ public class ProfileController : ControllerBase
             {
                 var stopwatch = Stopwatch.StartNew();
                 await CheckUniqueEmail(profile.Email);
+
+                profile.Password = profile.Password.BCryptHash();
                 await profileStore.CreateProfile(profile);
 
                 telemetryClient.TrackMetric("ProfileStore.AddProfile.Time", stopwatch.ElapsedMilliseconds);

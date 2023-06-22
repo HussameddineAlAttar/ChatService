@@ -4,6 +4,7 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using ChatService.Extensions;
 
 namespace ChatService.Controllers;
 
@@ -26,7 +27,7 @@ public class ImageController : ControllerBase
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
         var stopwatch = Stopwatch.StartNew();
-        await imageService.UploadImage(request, username);
+        await imageService.UploadImage(request, username.HashSHA256());
 
         string imgID = username;
 
@@ -45,7 +46,7 @@ public class ImageController : ControllerBase
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var imageBytes = await imageService.DownloadImage(username);
+                var imageBytes = await imageService.DownloadImage(username.HashSHA256());
 
                 telemetryClient.TrackMetric("ImageStore.GetImage.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Downloaded image");

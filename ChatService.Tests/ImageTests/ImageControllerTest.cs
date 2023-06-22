@@ -10,6 +10,7 @@ using ChatService.Exceptions;
 using ChatService.Storage;
 using ChatService.Services;
 using Microsoft.AspNetCore.Http;
+using ChatService.Extensions;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -54,7 +55,7 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadValidImage()
     {
         var expectedContent = new byte[] { 0x12, 0x34, 0x56, 0x78 };
-        imageService.Setup(m => m.DownloadImage(testID)).ReturnsAsync(expectedContent);
+        imageService.Setup(m => m.DownloadImage(testID.HashSHA256())).ReturnsAsync(expectedContent);
 
         var response = await httpClient.GetAsync($"/api/images/{testID}");
         var responseContent = await response.Content.ReadAsByteArrayAsync();
@@ -66,7 +67,7 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         string randomID = "randomID_doesn't_exist";
-        imageService.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
+        imageService.Setup(mock => mock.DownloadImage(randomID.HashSHA256())).ThrowsAsync(new ImageNotFoundException());
 
         var result = await httpClient.GetAsync($"/api/images/{randomID}");
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);
