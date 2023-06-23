@@ -18,7 +18,7 @@ public record Conversation
     public string CreateConversationId(List<string> usernames)
     {
         usernames.Sort();
-        return string.Join("_", usernames);
+        return string.Join("+", usernames);
     }
 
     public List<string> Participants { get; init; }

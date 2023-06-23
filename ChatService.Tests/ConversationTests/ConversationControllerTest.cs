@@ -165,6 +165,19 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Fact]
+    public async Task CreateConversation_MessageConflict()
+    {
+        var participants = new List<string> { "user1" , "user2"};
+        var conflictRequest = new CreateConversationRequest(participants, sendMessageRequest);
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, conflictRequest))))
+            .ThrowsAsync(new MessageConflictException());
+        var httpResponse = await httpClient.PostAsync("/api/conversations",
+
+            new StringContent(JsonConvert.SerializeObject(conflictRequest), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.Conflict, httpResponse.StatusCode);
+    }
+
+    [Fact]
     public async Task EnumerateConversations()
     {
         conversationServiceMock.Setup(m => m.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))

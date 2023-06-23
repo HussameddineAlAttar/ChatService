@@ -42,13 +42,14 @@ public class MessageService : IMessageService
     public async Task<long> SendMessage(string conversationId, Message message)
     {
         var conversation = await conversationStore.FindConversationById(conversationId);
-        List<string> usernames = conversation.Participants;
-        if (!usernames.Contains(message.SenderUsername))
+        bool senderValid = conversation.CheckSenderValidity(message.SenderUsername);
+        if (!senderValid)
         {
-            throw new NotPartOfConversationException($"Sender {message.SenderUsername} is not part of the conversation {conversationId}");
+            throw new NotPartOfConversationException($"Sender {message.SenderUsername} is not part of the conversation {conversation.Id}");
         }
+
         await Task.WhenAll(
-            conversationStore.UpdateLastModifiedTime(conversationId, usernames, message.Time),
+            conversationStore.UpdateLastModifiedTime(conversationId, conversation.Participants, message.Time),
             messagesStore.SendMessage(conversationId, message)
         );
         return message.Time;
