@@ -18,6 +18,11 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
 
     private readonly Profile testProfile;
 
+    private bool EqualProfile(Profile p1, Profile p2)
+    {
+        return (p1.Username == p2.Username) && (p1.Email == p2.Email) &&
+            (p1.FirstName == p2.FirstName) && (p1.LastName == p2.LastName);
+    }
 
     public ProfileControllerTest(WebApplicationFactory<Program> factory)
     {
@@ -25,7 +30,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
         {
             builder.ConfigureTestServices(services => { services.AddSingleton(profileStoreMock.Object); });
         }).CreateClient();
-        testProfile = new Profile("Test_FooBar", "Test_FooBar@email.com", "FooTest", "BarTest", Guid.NewGuid().ToString());
+        testProfile = new Profile("Test_FooBar", "Test_FooBar@email.com", Guid.NewGuid().ToString(), "FooTest", "BarTest");
     }
 
     [Fact]
@@ -67,6 +72,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     public async Task AddProfile_EmailTaken()
     {
         profileStoreMock.Setup(m => m.GetProfileByEmail(testProfile.Email)).ReturnsAsync(testProfile);
+        string idk = testProfile.Email;
 
         var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
@@ -78,12 +84,13 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     public async Task AddProfile_UsernameTaken()
     {
         profileStoreMock.Setup(m => m.GetProfileByEmail(testProfile.Email)).ThrowsAsync(new ProfileNotFoundException());
-        profileStoreMock.Setup(m => m.CreateProfile(testProfile)).ThrowsAsync(new ProfileConflictException());
+
+        profileStoreMock.Setup(m => m.CreateProfile(It.Is<Profile>(pf => EqualProfile(pf, testProfile)))).ThrowsAsync(new ProfileConflictException());
 
         var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(testProfile), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
-        profileStoreMock.Verify(mock => mock.CreateProfile(testProfile), Times.Once);
+        profileStoreMock.Verify(mock => mock.CreateProfile(It.Is<Profile>(pf => EqualProfile(pf, testProfile))), Times.Once);
     }
 
     [Theory]
@@ -98,7 +105,7 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
     [InlineData("foobar", "Foo", " ")]
     public async Task AddProfile_InvalidArgs(string username, string firstname, string lastname)
     {
-        Profile profile = new(username, firstname, lastname, Guid.NewGuid().ToString());
+        Profile profile = new(username, username + "@email.com", Guid.NewGuid().ToString(), firstname, lastname);
         var response = await httpClient.PostAsync("/api/profile",
             new StringContent(JsonConvert.SerializeObject(profile), Encoding.Default, "application/json"));
 

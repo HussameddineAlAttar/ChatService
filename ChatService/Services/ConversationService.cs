@@ -26,9 +26,16 @@ public class ConversationService : IConversationService
         {
             throw new ProfileNotFoundException(NonExistingProfiles);
         }
+
+        bool senderValid = conversation.CheckSenderValidity(convoRequest.FirstMessage.SenderUsername);
+        if (!senderValid){
+            throw new NotPartOfConversationException($"Sender {convoRequest.FirstMessage.SenderUsername} is not part of the conversation {conversation.Id}");
+        }
+
         await messagesStore.SendMessage(conversation.Id, convoRequest.FirstMessage.message);
         await conversationStore.CreateConversation(conversation);
     }
+
 
     public async Task<(List<EnumerateConversationsEntry>, string token)> EnumerateConversations(string username, int limit = 10, long? lastSeenConversationTime = 1, string? continuationToken = null)
     {
@@ -48,5 +55,4 @@ public class ConversationService : IConversationService
 
         return (convResponses, token);
     }
-
 }

@@ -9,6 +9,8 @@ using Newtonsoft.Json;
 using ChatService.Exceptions;
 using ChatService.Storage;
 using ChatService.Services;
+using Microsoft.AspNetCore.Http;
+using ChatService.Extensions;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -34,12 +36,13 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
         Stream imageStream = new MemoryStream();
         var testUploadImageResponse = new UploadImageResponse(testID);
 
-        imageService.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>())).ReturnsAsync(testID);
+        var request = new UploadImageRequest(new FormFile(null, 0, 0, "testImage", "testImage.jpg"));
 
         var fileToUpload = new StreamContent(imageStream);
         dataContent.Add(fileToUpload, "File", "image.png");
+        dataContent.Add(new StringContent("username"), testID);
 
-        var clientResponse = await httpClient.PostAsync("/api/images", dataContent);
+        var clientResponse = await httpClient.PostAsync($"/api/images/{testID}", dataContent);
         Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
 
         var json = await clientResponse.Content.ReadAsStringAsync();
@@ -52,7 +55,7 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadValidImage()
     {
         var expectedContent = new byte[] { 0x12, 0x34, 0x56, 0x78 };
-        imageService.Setup(m => m.DownloadImage(testID)).ReturnsAsync(expectedContent);
+        imageService.Setup(m => m.DownloadImage(testID.HashSHA256())).ReturnsAsync(expectedContent);
 
         var response = await httpClient.GetAsync($"/api/images/{testID}");
         var responseContent = await response.Content.ReadAsByteArrayAsync();
@@ -64,7 +67,7 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         string randomID = "randomID_doesn't_exist";
-        imageService.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
+        imageService.Setup(mock => mock.DownloadImage(randomID.HashSHA256())).ThrowsAsync(new ImageNotFoundException());
 
         var result = await httpClient.GetAsync($"/api/images/{randomID}");
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);

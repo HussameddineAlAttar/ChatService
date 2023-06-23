@@ -4,11 +4,12 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using ChatService.Extensions;
 
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("api/images")]
+[Route("api/images/{username}")]
 public class ImageController : ControllerBase
 {
     private readonly IImageService imageService;
@@ -23,10 +24,12 @@ public class ImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
+    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
         var stopwatch = Stopwatch.StartNew();
-        var imgID = await imageService.UploadImage(request);
+        await imageService.UploadImage(request, username.HashSHA256());
+
+        string imgID = username;
 
         telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
         logger.LogInformation("Uploaded image {ImageID}", imgID);
@@ -35,15 +38,15 @@ public class ImageController : ControllerBase
         return CreatedAtAction(nameof(UploadImage), response);
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult> DownloadImage(string id)
+    [HttpGet]
+    public async Task<ActionResult> DownloadImage(string username)
     {
-        using (logger.BeginScope("{ImageID}", id))
+        using (logger.BeginScope("{ImageID}", username))
         {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var imageBytes = await imageService.DownloadImage(id);
+                var imageBytes = await imageService.DownloadImage(username.HashSHA256());
 
                 telemetryClient.TrackMetric("ImageStore.GetImage.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Downloaded image");
@@ -54,7 +57,7 @@ public class ImageController : ControllerBase
             {
                 if (e is ImageNotFoundException)
                 {
-                    return NotFound($"Image of id {id} not found.");
+                    return NotFound($"Image for user {username} not found.");
                 }
                 throw;
             }

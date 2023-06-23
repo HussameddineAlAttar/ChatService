@@ -3,11 +3,6 @@ using ChatService.Services;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Http;
 using Moq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -37,14 +32,6 @@ public class ImageServiceTest
         };
         uploadImageRequest = new(file);
         imageId = Guid.NewGuid().ToString();
-    }
-
-    [Fact]
-    public async Task UploadImage()
-    {
-        imageStoreMock.Setup(m => m.UploadImage(uploadImageRequest)).ReturnsAsync(imageId);
-        string actualId = await imageService.UploadImage(uploadImageRequest);
-        Assert.Equal(imageId, actualId);
     }
 
     [Fact]
