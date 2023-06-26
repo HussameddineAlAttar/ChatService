@@ -61,8 +61,6 @@ Creates a new profile.
 <details>
 <summary><h2>Image API Documentation</h2></summary>
 
-This README file provides documentation for the Image API endpoints. Below you will find information about the available endpoints, their request parameters, and response parameters.
-
 ## UploadImage
 
 Uploads an image for a given username.
@@ -81,31 +79,6 @@ Uploads an image for a given username.
   - `Location`: The URL of the newly created image resource.
 - Body:
   - `imageId` (string): The unique identifier of the uploaded image.
-
-**Example:**
-
-Request:
-POST /api/images/johndoe
-Content-Type: multipart/form-data
-
---boundary
-Content-Disposition: form-data; name="File"; filename="image.png"
-Content-Type: image/png
-
-...binary data of the image...
-
---boundary--
-
-Response:
-Status: 201 Created
-Headers:
-{
-"Location": "/api/images/johndoe"
-}
-Body:
-{
-"imageId": "johndoe"
-}
 
 
 ## DownloadImage
@@ -127,16 +100,5 @@ Downloads the image associated with a given username.
 **Failed Request Responses:**
 - Status: 404 Not Found
   - Body: Image for user {username} not found.
-
-**Example:**
-
-Request:
-
-GET /api/images/johndoe
-
-Response:
-Status: 200 OK
-Body: {image content}
-Content-Type: image/png
 
 </details>
