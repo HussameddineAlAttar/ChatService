@@ -76,7 +76,7 @@ Uploads an image for a given username.
 **Response:**
 - Status: 201 Created
 - Headers:
-  - `Location`: The URL of the newly created image resource.
+  - `Location`: The URL of the newly created image.
 - Body:
   - `imageId` (string): The unique identifier of the uploaded image.
 
