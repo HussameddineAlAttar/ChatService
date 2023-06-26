@@ -26,6 +26,11 @@ public class ImageController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
+        var type = request.File.ContentType;
+        if (type != "image/png" && type != "image/jpeg")
+        {
+            return BadRequest($"{type} file not supported. Upload a PNG or JPEG image instead.");
+        }
         var stopwatch = Stopwatch.StartNew();
         await imageService.UploadImage(request, username.HashSHA256());
 
