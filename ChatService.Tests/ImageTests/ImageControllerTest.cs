@@ -11,6 +11,7 @@ using ChatService.Storage;
 using ChatService.Services;
 using Microsoft.AspNetCore.Http;
 using ChatService.Extensions;
+using Microsoft.VisualBasic.FileIO;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -49,6 +50,27 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
         var json = await clientResponse.Content.ReadAsStringAsync();
         UploadImageResponse receivedResponse = JsonConvert.DeserializeObject<UploadImageResponse>(json);
         Assert.Equal(testUploadImageResponse, receivedResponse);
+    }
+
+    [Fact]
+    public async Task UploadImage_UserNotFound()
+    {
+        string user404 = "randomUserDoesntExist";
+
+        Stream imageStream = new MemoryStream();
+        var testUploadImageResponse = new UploadImageResponse(testID);
+
+        var fileToUpload = new StreamContent(imageStream);
+        dataContent.Add(fileToUpload, "File", "image");
+        dataContent.Add(new StringContent("username"), user404);
+        fileToUpload.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+
+        imageService.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>(), user404))
+            .ThrowsAsync(new ProfileNotFoundException());
+
+        var clientResponse = await httpClient.PostAsync($"/api/images/{user404}", dataContent);
+        Assert.Equal(HttpStatusCode.NotFound, clientResponse.StatusCode);
+
     }
 
     [Fact]
