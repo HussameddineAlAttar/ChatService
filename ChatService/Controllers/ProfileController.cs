@@ -66,6 +66,10 @@ public class ProfileController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Profile>> AddProfile(Profile profile)
     {
+        if (!profile.Email.IsValidEmail())
+        {
+            return BadRequest("Email format is invalid");
+        }
         using (logger.BeginScope("{Username}", profile.Username))
         {
             try

@@ -3,11 +3,11 @@ namespace ChatService.DTO;
 
 public record Profile
 {
-    public string Username { get; init; }
-    public string Email { get; init; }
+    public string Username { get; set; }
+    public string Email { get; set; }
     public string Password { get; set; }
-    public string FirstName { get; init; }
-    public string LastName { get; init; }
+    public string FirstName { get; set; }
+    public string LastName { get; set; }
 
     public Profile([Required] string Username, [Required] string Email, [Required] string Password,
         [Required] string FirstName, [Required] string LastName)

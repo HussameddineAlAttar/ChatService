@@ -1,9 +1,10 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ChatService.Extensions;
 
-public static class HashExtension
+public static class StringExtension
 {
     public static string HashSHA256(this string input)
     {
@@ -25,5 +26,23 @@ public static class HashExtension
     public static string BCryptHash(this string input)
     {
         return BCrypt.Net.BCrypt.HashPassword(input);
+    }
+
+    public static bool IsValidEmail(this string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return false;
+        }
+        try
+        {
+            return Regex.IsMatch(email,
+                @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+                RegexOptions.IgnoreCase, TimeSpan.FromMilliseconds(250));
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return false;
+        }
     }
 }
