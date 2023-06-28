@@ -19,15 +19,6 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task CreateProfile(Profile profile)
     {
-        if (profile == null ||
-            string.IsNullOrWhiteSpace(profile.Username) ||
-            string.IsNullOrWhiteSpace(profile.Email) ||
-            string.IsNullOrWhiteSpace(profile.FirstName) ||
-            string.IsNullOrWhiteSpace(profile.LastName)
-           )
-        {
-            throw new ArgumentException($"Invalid profile {profile}", nameof(profile));
-        }
         try
         {
             await Container.CreateItemAsync(ToEntity(profile));
@@ -44,10 +35,6 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task<Profile> GetProfile(string username)
     {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new ArgumentNullException($"Username cannot be empty");
-        }
         try
         {
             var entity = await Container.ReadItemAsync<ProfileEntity>(
@@ -88,10 +75,6 @@ public class CosmosProfileStore : IProfileStore
 
     public async Task DeleteProfile(string username)
     {
-        if (string.IsNullOrWhiteSpace(username))
-        {
-            throw new ArgumentNullException($"Username cannot be empty");
-        }
         try
         {
             await Container.DeleteItemAsync<Profile>(
