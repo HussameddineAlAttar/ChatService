@@ -26,16 +26,32 @@ public class ImageController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
-        var stopwatch = Stopwatch.StartNew();
-        await imageService.UploadImage(request, username.HashSHA256());
+        try
+        {
+            var type = request.File.ContentType;
+            if (type != "image/png" && type != "image/jpeg")
+            {
+                return BadRequest($"{type} file not supported. Upload a PNG or JPEG image instead.");
+            }
+            var stopwatch = Stopwatch.StartNew();
+            await imageService.UploadImage(request, username);
 
-        string imgID = username;
+            string imgID = username;
 
-        telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
-        logger.LogInformation("Uploaded image {ImageID}", imgID);
+            telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
+            logger.LogInformation("Uploaded image {ImageID}", imgID);
 
-        var response = new UploadImageResponse(imgID);
-        return CreatedAtAction(nameof(UploadImage), response);
+            var response = new UploadImageResponse(imgID);
+            return CreatedAtAction(nameof(UploadImage), response);
+        }
+        catch (Exception ex)
+        {
+            if(ex is ProfileNotFoundException)
+            {
+                return NotFound($"User with username {username} not found.");
+            }
+            throw;
+        }
     }
 
     [HttpGet]

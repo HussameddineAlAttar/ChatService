@@ -79,6 +79,18 @@ public class ProfileControllerTest : IClassFixture<WebApplicationFactory<Program
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         profileStoreMock.Verify(mock => mock.CreateProfile(testProfile), Times.Never);
     }
+    
+    [Fact]
+    public async Task AddProfile_InvalidEmail()
+    {
+        Profile invalidProfile = testProfile;
+        invalidProfile.Email = "invalid";
+
+        var response = await httpClient.PostAsync("/api/profile",
+            new StringContent(JsonConvert.SerializeObject(invalidProfile), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        profileStoreMock.Verify(mock => mock.CreateProfile(testProfile), Times.Never);
+    }
 
     [Fact]
     public async Task AddProfile_UsernameTaken()
