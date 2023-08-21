@@ -4,11 +4,12 @@ using ChatService.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
+using ChatService.Extensions;
 
 namespace ChatService.Controllers;
 
 [ApiController]
-[Route("api/images")]
+[Route("api/images/{username}")]
 public class ImageController : ControllerBase
 {
     private readonly IImageService imageService;
@@ -23,27 +24,45 @@ public class ImageController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request)
+    public async Task<ActionResult<UploadImageResponse>> UploadImage([FromForm] UploadImageRequest request, string username)
     {
-        var stopwatch = Stopwatch.StartNew();
-        var imgID = await imageService.UploadImage(request);
+        try
+        {
+            var type = request.File.ContentType;
+            if (type != "image/png" && type != "image/jpeg")
+            {
+                return BadRequest($"{type} file not supported. Upload a PNG or JPEG image instead.");
+            }
+            var stopwatch = Stopwatch.StartNew();
+            await imageService.UploadImage(request, username);
 
-        telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
-        logger.LogInformation("Uploaded image {ImageID}", imgID);
+            string imgID = username;
 
-        var response = new UploadImageResponse(imgID);
-        return CreatedAtAction(nameof(UploadImage), response);
+            telemetryClient.TrackMetric("ImageStore.AddImage.Time", stopwatch.ElapsedMilliseconds);
+            logger.LogInformation("Uploaded image {ImageID}", imgID);
+
+            var response = new UploadImageResponse(imgID);
+            return CreatedAtAction(nameof(UploadImage), response);
+        }
+        catch (Exception ex)
+        {
+            if(ex is ProfileNotFoundException)
+            {
+                return NotFound($"User with username {username} not found.");
+            }
+            throw;
+        }
     }
 
-    [HttpGet("{id}")]
-    public async Task<ActionResult> DownloadImage(string id)
+    [HttpGet]
+    public async Task<ActionResult> DownloadImage(string username)
     {
-        using (logger.BeginScope("{ImageID}", id))
+        using (logger.BeginScope("{ImageID}", username))
         {
             try
             {
                 var stopwatch = Stopwatch.StartNew();
-                var imageBytes = await imageService.DownloadImage(id);
+                var imageBytes = await imageService.DownloadImage(username.HashSHA256());
 
                 telemetryClient.TrackMetric("ImageStore.GetImage.Time", stopwatch.ElapsedMilliseconds);
                 logger.LogInformation("Downloaded image");
@@ -54,7 +73,7 @@ public class ImageController : ControllerBase
             {
                 if (e is ImageNotFoundException)
                 {
-                    return NotFound($"Image of id {id} not found.");
+                    return NotFound($"Image for user {username} not found.");
                 }
                 throw;
             }

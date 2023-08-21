@@ -1,4 +1,5 @@
 ﻿using ChatService.DTO;
+using ChatService.Extensions;
 using ChatService.Storage;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,10 +8,12 @@ namespace ChatService.Services;
 public class ImageService : IImageService
 {
     private readonly IImageStore imageStore;
+    private readonly IProfileStore profileStore;
 
-    public ImageService(IImageStore _imageStore)
+    public ImageService(IImageStore _imageStore, IProfileStore _profileStore)
     {
         imageStore = _imageStore;
+        profileStore = _profileStore;
     }
 
     public async Task<byte[]> DownloadImage(string id)
@@ -25,8 +28,9 @@ public class ImageService : IImageService
         return contentBytes;
     }
 
-    public async Task<string> UploadImage([FromForm] UploadImageRequest request)
+    public async Task UploadImage([FromForm] UploadImageRequest request, string username)
     {
-        return await imageStore.UploadImage(request);
+        await profileStore.GetProfile(username); //checking if profile exists
+        await imageStore.UploadImage(request, username.HashSHA256());
     }
 }

@@ -20,6 +20,9 @@ public class ConversationServiceTest
     private readonly List<Conversation> conversationList;
     private readonly List<EnumerateConversationsEntry> enumConversationList;
 
+    private readonly CreateConversationRequest convoRequest_notPartOf;
+    private readonly SendMessageRequest sendMessageRequest_notPartOf;
+
     private readonly SendMessageRequest sendMessageRequest;
     private readonly List<string> participants1;
     private readonly List<string> participants2;
@@ -39,9 +42,9 @@ public class ConversationServiceTest
     {
         conversationService = new ConversationService(conversationStoreMock.Object, profileStoreMock.Object, messageStoreMock.Object);
         username = "Foo";
-        FooProfile = new Profile(username, "FirstName", "LastName", Guid.NewGuid().ToString());
-        BarProfile = new Profile("Bar", "FirstName", "LastName", Guid.NewGuid().ToString());
-        NewBarProfile = new Profile("NewBar", "FirstName", "LastName", Guid.NewGuid().ToString());
+        FooProfile = new Profile(username, username+"email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
+        BarProfile = new Profile("Bar", "bar@email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
+        NewBarProfile = new Profile("NewBar", "NewBar@email.com", Guid.NewGuid().ToString(), "FirstName", "LastName");
 
         sendMessageRequest = new(Guid.NewGuid().ToString(), username, "Hello World");
         message = sendMessageRequest.message;
@@ -58,6 +61,9 @@ public class ConversationServiceTest
         };
 
         convoRequest = new CreateConversationRequest(participants1, sendMessageRequest);
+        sendMessageRequest_notPartOf = new SendMessageRequest(Guid.NewGuid().ToString(),
+            "random_username_notpartof_conversation", Guid.NewGuid().ToString());
+        convoRequest_notPartOf = new CreateConversationRequest(participants1 , sendMessageRequest_notPartOf);
     }
 
     private bool EqualConversationList(List<EnumerateConversationsEntry> list1, List<EnumerateConversationsEntry> list2)
@@ -85,6 +91,18 @@ public class ConversationServiceTest
 
         messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Once);
         conversationStoreMock.Verify(x => x.CreateConversation(It.Is<Conversation>(conv => EqualConversation(conv, conversation1))), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateConversation_SenderNotPartOfConversation()
+    {
+        await Assert.ThrowsAsync<NotPartOfConversationException>(async () =>
+        {
+            await conversationService.CreateConversation(convoRequest_notPartOf);
+        });
+
+        messageStoreMock.Verify(x => x.SendMessage(conversation1.Id, message), Times.Never);
+        conversationStoreMock.Verify(x => x.CreateConversation(It.Is<Conversation>(conv => EqualConversation(conv, conversation1))), Times.Never);
     }
 
     [Fact]
@@ -129,7 +147,7 @@ public class ConversationServiceTest
     [Fact]
     public async Task EnumerateConversations_NoConversations()
     {
-        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, "first", "last"));
+        profileStoreMock.Setup(x => x.GetProfile(username)).ReturnsAsync(new Profile(username, username + "email.com",Guid.NewGuid().ToString(), "first", "last"));
         conversationStoreMock.Setup(x => x.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken))
             .ReturnsAsync((new List<Conversation>() { }, nullToken));
         (var conversationListResponse, var token) = await conversationService.EnumerateConversations(username, defaultLimit, defaultLastSeen, nullToken);

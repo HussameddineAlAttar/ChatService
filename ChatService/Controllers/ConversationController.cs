@@ -65,6 +65,10 @@ public class ConversationController : ControllerBase
                     var messageTokenResponse = new EnumerateMessagesResponse(messageResponses, conversation.Id, continuationToken: token);
                     return Ok(messageTokenResponse);
                 }
+                if (e is MessageConflictException)
+                {
+                    return Conflict($"Message with id {request.FirstMessage.Id} already exists");
+                }
                 if (e is ProfileNotFoundException notFoundException)
                 {
                     return NotFound($"Cannot create conversation between non-existing users: {string.Join(", ", notFoundException.Usernames)}");

@@ -9,6 +9,9 @@ using Newtonsoft.Json;
 using ChatService.Exceptions;
 using ChatService.Storage;
 using ChatService.Services;
+using Microsoft.AspNetCore.Http;
+using ChatService.Extensions;
+using Microsoft.VisualBasic.FileIO;
 
 namespace ChatService.Tests.ImageTests;
 
@@ -28,18 +31,20 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
         }).CreateClient();
     }
 
-    [Fact]
-    public async Task UploadValidImage()
+    [Theory]
+    [InlineData("image/png")]
+    [InlineData("image/jpeg")]
+    public async Task UploadValidImage(string fileType)
     {
         Stream imageStream = new MemoryStream();
         var testUploadImageResponse = new UploadImageResponse(testID);
 
-        imageService.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>())).ReturnsAsync(testID);
-
         var fileToUpload = new StreamContent(imageStream);
-        dataContent.Add(fileToUpload, "File", "image.png");
+        dataContent.Add(fileToUpload, "File", "image");
+        dataContent.Add(new StringContent("username"), testID);
+        fileToUpload.Headers.ContentType = new MediaTypeHeaderValue(fileType);
 
-        var clientResponse = await httpClient.PostAsync("/api/images", dataContent);
+        var clientResponse = await httpClient.PostAsync($"/api/images/{testID}", dataContent);
         Assert.Equal(HttpStatusCode.Created, clientResponse.StatusCode);
 
         var json = await clientResponse.Content.ReadAsStringAsync();
@@ -47,12 +52,32 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
         Assert.Equal(testUploadImageResponse, receivedResponse);
     }
 
+    [Fact]
+    public async Task UploadImage_UserNotFound()
+    {
+        string user404 = "randomUserDoesntExist";
+
+        Stream imageStream = new MemoryStream();
+        var testUploadImageResponse = new UploadImageResponse(testID);
+
+        var fileToUpload = new StreamContent(imageStream);
+        dataContent.Add(fileToUpload, "File", "image");
+        dataContent.Add(new StringContent("username"), user404);
+        fileToUpload.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+
+        imageService.Setup(m => m.UploadImage(It.IsAny<UploadImageRequest>(), user404))
+            .ThrowsAsync(new ProfileNotFoundException());
+
+        var clientResponse = await httpClient.PostAsync($"/api/images/{user404}", dataContent);
+        Assert.Equal(HttpStatusCode.NotFound, clientResponse.StatusCode);
+
+    }
 
     [Fact]
     public async Task DownloadValidImage()
     {
         var expectedContent = new byte[] { 0x12, 0x34, 0x56, 0x78 };
-        imageService.Setup(m => m.DownloadImage(testID)).ReturnsAsync(expectedContent);
+        imageService.Setup(m => m.DownloadImage(testID.HashSHA256())).ReturnsAsync(expectedContent);
 
         var response = await httpClient.GetAsync($"/api/images/{testID}");
         var responseContent = await response.Content.ReadAsByteArrayAsync();
@@ -64,7 +89,7 @@ public class ImageControllerTest: IClassFixture<WebApplicationFactory<Program>>
     public async Task DownloadImage_NotFound()
     {
         string randomID = "randomID_doesn't_exist";
-        imageService.Setup(mock => mock.DownloadImage(randomID)).ThrowsAsync(new ImageNotFoundException());
+        imageService.Setup(mock => mock.DownloadImage(randomID.HashSHA256())).ThrowsAsync(new ImageNotFoundException());
 
         var result = await httpClient.GetAsync($"/api/images/{randomID}");
         Assert.Equal(HttpStatusCode.NotFound, result.StatusCode);

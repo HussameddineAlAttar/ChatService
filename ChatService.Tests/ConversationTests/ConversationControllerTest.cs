@@ -29,6 +29,8 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
 
     private readonly List<string> participants;
     private readonly string username;
+    private readonly string email;
+    private readonly string password;
 
     private readonly HttpClient httpClient;
     private readonly Mock<IConversationService> conversationServiceMock = new();
@@ -48,13 +50,15 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         }).CreateClient();
 
         username = "Foo";
+        email = "FooBar@email.com";
+        password = Guid.NewGuid().ToString();
         participants = new List<string> { "Foo", "Bar" };
-        sendMessageRequest = new(Guid.NewGuid().ToString(),username, Guid.NewGuid().ToString());
+        sendMessageRequest = new(Guid.NewGuid().ToString(), username, Guid.NewGuid().ToString());
         conversation = new Conversation(participants);
         convoRequest = new CreateConversationRequest(participants, sendMessageRequest);
 
-        enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "Foo", "Bar"));
-        enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "Fizz", "Buzz"));
+        enumConvoResponse1 = new(Guid.NewGuid().ToString(), 123, new Profile("FooBar", "FooBar@email.com", password, "Foo", "Bar"));
+        enumConvoResponse2 = new(Guid.NewGuid().ToString(), 456, new Profile("FizzBuzz", "FizzBuzz@email.com", password, "Fizz", "Buzz"));
         enumConvoResponseList = new() { enumConvoResponse2, enumConvoResponse1 };
         convoTokenResponse = new(enumConvoResponseList, username, defaultLimit, defaultLastSeen, defaultToken);
 
@@ -114,7 +118,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
         var messagesWithUri = JsonConvert.DeserializeObject<EnumerateMessagesResponse>(json);
 
         string expectedUri = $"/api/conversations/{conversation.Id}/messages?limit={defaultLimit}&lastSeenMessageTime={defaultLastSeen}&continuationToken={defaultToken}";
-        
+
         Assert.Equal(HttpStatusCode.OK, httpResponse.StatusCode);
         Assert.Equal(expectedUri, messagesWithUri.NextUri);
         Assert.True(EqualMessageList(messageTokenResponse.Messages, messagesWithUri.Messages));
@@ -124,7 +128,7 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     public async Task CreateConversation_ProfileNotFoundException()
     {
         conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, convoRequest))))
-            .ThrowsAsync(new ProfileNotFoundException(new List<string>() {"BarFoo", "BooFar"}));
+            .ThrowsAsync(new ProfileNotFoundException(new List<string>() { "BarFoo", "BooFar" }));
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(convoRequest), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.NotFound, httpResponse.StatusCode);
@@ -153,11 +157,24 @@ public class ConversationControllerTest : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task CreateConversation_NotEnoughParticipants()
     {
-        var participants = new List<string> { "user1"};
+        var participants = new List<string> { "user1" };
         var request = new CreateConversationRequest(participants, sendMessageRequest);
         var httpResponse = await httpClient.PostAsync("/api/conversations",
             new StringContent(JsonConvert.SerializeObject(request), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.BadRequest, httpResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task CreateConversation_MessageConflict()
+    {
+        var participants = new List<string> { "user1" , "user2"};
+        var conflictRequest = new CreateConversationRequest(participants, sendMessageRequest);
+        conversationServiceMock.Setup(m => m.CreateConversation(It.Is<CreateConversationRequest>(request => EqualConvoRequest(request, conflictRequest))))
+            .ThrowsAsync(new MessageConflictException());
+        var httpResponse = await httpClient.PostAsync("/api/conversations",
+
+            new StringContent(JsonConvert.SerializeObject(conflictRequest), Encoding.Default, "application/json"));
+        Assert.Equal(HttpStatusCode.Conflict, httpResponse.StatusCode);
     }
 
     [Fact]
