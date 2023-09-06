@@ -98,6 +98,8 @@ Downloads the image associated with a given username.
 - Content-Type: image/png
 
 **Failed Request Responses:**
+- Status: 400 Bad Request
+  - Body: Image type not supported.
 - Status: 404 Not Found
   - Body: Image for user {username} not found.
 
